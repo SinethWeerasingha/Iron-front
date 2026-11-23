@@ -1,0 +1,2765 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>IRON FRONT: WORLD WAR</title>
+<style>
+/* ============================================================
+   IRON FRONT — PERIOD MILITARY INTERFACE
+   ============================================================ */
+:root{
+  --olive:#3d4a2a;
+  --olive-lt:#5a6b3d;
+  --olive-dk:#232a19;
+  --field:#4a4d42;
+  --sand:#c9b98a;
+  --sand-dim:#8f8462;
+  --charcoal:#14160f;
+  --offwhite:#e9e5d6;
+  --blood:#8c2f1e;
+  --steel:#7d8478;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;background:#0d0f0a;}
+body{
+  font-family:"Courier New",ui-monospace,monospace;
+  color:var(--offwhite);
+  user-select:none;
+  -webkit-font-smoothing:antialiased;
+}
+canvas#game{position:fixed;inset:0;width:100%;height:100%;z-index:0;display:block;cursor:none;}
+
+/* ---------- generic screen ---------- */
+.screen{
+  position:fixed;inset:0;z-index:20;
+  display:flex;
+  /* NOTE: no align-items / justify-content here.
+     Centering is done by `margin:auto` on the child below,
+     which works correctly even when content overflows. */
+  background:
+    radial-gradient(ellipse at 50% 40%, rgba(60,74,42,.30), transparent 65%),
+    linear-gradient(180deg,#0e1109 0%, #171a11 45%, #0b0d08 100%);
+  overflow-y:auto;
+  overscroll-behavior:contain;
+}
+.screen.hidden{display:none;}
+.screen::after{
+  content:"";position:fixed;inset:0;pointer-events:none;
+  background-image:repeating-linear-gradient(0deg, rgba(0,0,0,.22) 0 1px, transparent 1px 3px);
+  opacity:.35;
+}
+
+/* This is the key change: auto margins center the inner content
+   when it fits, and gracefully scroll from the top when it doesn't. */
+.menu-inner,
+.list-inner,
+.res-inner,
+.pause-inner{
+  margin:auto;
+}
+
+/* ---------- main menu ---------- */
+.menu-inner{
+  position:relative;z-index:2;
+  text-align:center;padding:40px 28px;max-width:760px;width:100%;
+}
+.logo{
+  font-size:clamp(38px,8vw,88px);
+  letter-spacing:.14em;font-weight:900;
+  color:var(--offwhite);
+  text-shadow:0 0 24px rgba(201,185,138,.20), 0 4px 0 #1a1d13, 0 6px 14px rgba(0,0,0,.9);
+  line-height:1;
+}
+.logo span{color:var(--sand);}
+.logo-sub{
+  margin-top:10px;
+  font-size:clamp(14px,2.6vw,24px);
+  letter-spacing:.62em;
+  color:var(--sand-dim);
+  text-indent:.62em;
+}
+.tagline{
+  margin:26px auto 34px;max-width:520px;
+  font-size:12px;letter-spacing:.22em;line-height:2;
+  color:#9aa189;
+  border-top:1px solid rgba(201,185,138,.18);
+  border-bottom:1px solid rgba(201,185,138,.18);
+  padding:12px 0;
+}
+.menu-buttons{display:flex;flex-direction:column;gap:12px;max-width:380px;margin:0 auto;}
+button{
+  font-family:inherit;font-size:14px;letter-spacing:.22em;
+  padding:15px 20px;cursor:pointer;
+  color:var(--offwhite);
+  background:linear-gradient(180deg,rgba(90,107,61,.35),rgba(35,42,25,.65));
+  border:1px solid rgba(201,185,138,.30);
+  transition:all .16s ease;
+  text-transform:uppercase;
+}
+button:hover:not(:disabled){
+  background:linear-gradient(180deg,rgba(140,160,95,.45),rgba(60,74,42,.8));
+  border-color:var(--sand);
+  color:#fff;
+  letter-spacing:.28em;
+}
+button:active:not(:disabled){transform:translateY(1px);}
+button:disabled{opacity:.35;cursor:not-allowed;}
+button.ghost{background:transparent;border-color:rgba(201,185,138,.18);font-size:12px;padding:11px 16px;}
+button.danger{border-color:rgba(140,47,30,.7);color:#e2b3a8;}
+
+.footer{
+  margin-top:44px;font-size:10px;letter-spacing:.34em;color:#5b6149;
+}
+
+/* ---------- mission select ---------- */
+.list-inner{
+  position:relative;z-index:2;width:100%;max-width:920px;
+  padding:40px 26px 60px;
+}
+.list-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:26px;flex-wrap:wrap;gap:12px;}
+.list-title{font-size:22px;letter-spacing:.3em;color:var(--sand);}
+.chapter{
+  margin:26px 0 12px;font-size:11px;letter-spacing:.4em;color:#7f876c;
+  border-bottom:1px solid rgba(201,185,138,.16);padding-bottom:8px;
+}
+.mission-row{
+  display:flex;align-items:center;gap:16px;
+  padding:14px 16px;margin-bottom:8px;
+  border:1px solid rgba(201,185,138,.13);
+  background:linear-gradient(90deg,rgba(60,74,42,.18),rgba(20,22,15,.35));
+  cursor:pointer;transition:all .15s ease;
+}
+.mission-row:hover:not(.locked){
+  border-color:var(--sand);
+  background:linear-gradient(90deg,rgba(90,107,61,.35),rgba(20,22,15,.5));
+  transform:translateX(4px);
+}
+.mission-row.locked{opacity:.38;cursor:not-allowed;}
+.m-index{
+  width:34px;height:34px;flex:0 0 34px;
+  display:grid;place-items:center;
+  border:1px solid rgba(201,185,138,.35);
+  font-size:13px;color:var(--sand);
+}
+.m-body{flex:1;min-width:0;}
+.m-name{font-size:14px;letter-spacing:.16em;color:var(--offwhite);}
+.m-brief{font-size:11px;color:#8a9179;margin-top:4px;line-height:1.6;}
+.m-type{font-size:10px;letter-spacing:.24em;color:var(--sand-dim);margin-top:5px;}
+.m-rating{
+  font-size:18px;width:46px;text-align:center;color:var(--sand);
+  text-shadow:0 0 12px rgba(201,185,138,.4);
+}
+.m-rating.failed{color:#7a3a2c;font-size:11px;letter-spacing:.1em;}
+
+/* ---------- results ---------- */
+.res-inner{position:relative;z-index:2;text-align:center;padding:40px 24px;max-width:560px;width:100%;}
+.res-title{font-size:34px;letter-spacing:.24em;margin-bottom:6px;}
+.res-title.ok{color:#a9c47a;}
+.res-title.bad{color:#c96a52;}
+.res-reason{font-size:12px;letter-spacing:.2em;color:#8a9179;margin-bottom:26px;}
+.res-stats{
+  display:grid;grid-template-columns:1fr 1fr;gap:10px;
+  margin:0 auto 26px;max-width:400px;
+}
+.res-stat{
+  border:1px solid rgba(201,185,138,.16);padding:12px;
+  background:rgba(0,0,0,.25);
+}
+.res-stat b{display:block;font-size:18px;color:var(--sand);letter-spacing:.1em;}
+.res-stat i{display:block;font-style:normal;font-size:10px;letter-spacing:.24em;color:#7f876c;margin-top:5px;}
+.res-rank{
+  font-size:64px;letter-spacing:.1em;color:var(--sand);
+  text-shadow:0 0 34px rgba(201,185,138,.45);margin-bottom:18px;
+}
+.res-buttons{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
+
+/* ---------- vehicles ---------- */
+.veh-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;}
+.veh-card{
+  border:1px solid rgba(201,185,138,.16);padding:16px;
+  background:linear-gradient(180deg,rgba(60,74,42,.18),rgba(0,0,0,.3));
+}
+.veh-card h4{font-size:14px;letter-spacing:.18em;color:var(--sand);margin-bottom:4px;}
+.veh-card .cls{font-size:10px;letter-spacing:.24em;color:#7f876c;margin-bottom:12px;}
+.veh-card p{font-size:11px;line-height:1.7;color:#9aa189;}
+.veh-spec{display:flex;justify-content:space-between;font-size:11px;margin-top:6px;color:#b8bcab;}
+.veh-spec span:last-child{color:var(--sand);}
+.veh-card.locked{opacity:.4;}
+
+/* ============================================================
+   HUD
+   ============================================================ */
+#hud{position:fixed;inset:0;z-index:5;pointer-events:none;display:none;}
+#hud.on{display:block;}
+.hud-panel{
+  position:absolute;
+  background:linear-gradient(180deg,rgba(18,22,14,.82),rgba(10,12,8,.88));
+  border:1px solid rgba(201,185,138,.22);
+  padding:10px 14px;
+  font-size:11px;letter-spacing:.16em;
+  backdrop-filter:blur(2px);
+}
+.hud-panel::before{
+  content:"";position:absolute;top:-1px;left:-1px;width:8px;height:8px;
+  border-top:2px solid var(--sand);border-left:2px solid var(--sand);
+}
+.hud-panel::after{
+  content:"";position:absolute;bottom:-1px;right:-1px;width:8px;height:8px;
+  border-bottom:2px solid var(--sand);border-right:2px solid var(--sand);
+}
+
+#hudTopLeft{top:16px;left:16px;min-width:250px;max-width:340px;}
+.hud-mission{font-size:12px;color:var(--sand);letter-spacing:.24em;margin-bottom:6px;}
+.hud-objective{font-size:11px;color:#b9bfa9;line-height:1.7;margin-bottom:4px;}
+.hud-objective .done{color:#8fc06a;}
+.hud-timer{font-size:15px;color:var(--offwhite);letter-spacing:.18em;margin-top:6px;}
+.hud-timer.warn{color:#e08a63;animation:blink 1s infinite;}
+@keyframes blink{50%{opacity:.35;}}
+
+#hudTopRight{top:16px;right:16px;padding:8px;}
+#minimap{display:block;width:150px;height:150px;image-rendering:pixelated;border:1px solid rgba(201,185,138,.25);}
+.hud-compass{text-align:center;margin-top:6px;font-size:12px;letter-spacing:.3em;color:var(--sand);}
+
+#hudBottomLeft{bottom:16px;left:16px;min-width:250px;}
+.hud-row{display:flex;justify-content:space-between;gap:20px;margin-bottom:5px;color:#9aa189;}
+.hud-row b{color:var(--offwhite);font-weight:700;letter-spacing:.12em;}
+.hud-row b.hot{color:#e08a63;}
+.bar-line{display:flex;align-items:center;gap:8px;margin-top:5px;}
+.bar-line i{font-style:normal;font-size:9px;letter-spacing:.2em;color:#7f876c;width:52px;}
+.bar-track{flex:1;height:7px;background:rgba(0,0,0,.6);border:1px solid rgba(201,185,138,.2);overflow:hidden;}
+.bar-fill{height:100%;width:100%;transition:width .12s linear;}
+.bar-fill.hull{background:linear-gradient(90deg,#6d8a45,#a9c47a);}
+.bar-fill.eng{background:linear-gradient(90deg,#8a7a3a,#d6c07a);}
+.bar-fill.trk{background:linear-gradient(90deg,#3a6a7a,#7ab8c4);}
+.bar-fill.tur{background:linear-gradient(90deg,#7a4a3a,#c4887a);}
+.bar-fill.fuel{background:linear-gradient(90deg,#7a6a2a,#d6b45a);}
+.bar-fill.warn{background:linear-gradient(90deg,#8c2f1e,#e08a63)!important;}
+
+#hudBottomRight{bottom:16px;right:16px;text-align:right;min-width:170px;}
+.hud-ammo{font-size:26px;letter-spacing:.1em;color:var(--sand);line-height:1;}
+.hud-ammo small{font-size:11px;color:#7f876c;letter-spacing:.2em;}
+.reload-track{height:5px;background:rgba(0,0,0,.6);border:1px solid rgba(201,185,138,.2);margin-top:9px;overflow:hidden;}
+.reload-fill{height:100%;width:100%;background:linear-gradient(90deg,#8c2f1e,#e0b463);}
+.reload-fill.ready{background:linear-gradient(90deg,#4a7a2a,#a9c47a);}
+
+#hudMsg{
+  position:absolute;left:50%;bottom:120px;transform:translateX(-50%);
+  font-size:13px;letter-spacing:.28em;color:var(--sand);
+  text-shadow:0 2px 8px #000;opacity:0;transition:opacity .3s;
+  text-align:center;white-space:nowrap;
+}
+#hudMsg.show{opacity:1;}
+
+/* crosshair drawn on canvas, but a soft vignette helps */
+#vignette{
+  position:fixed;inset:0;z-index:4;pointer-events:none;
+  box-shadow:inset 0 0 180px 40px rgba(0,0,0,.75);
+  display:none;
+}
+#vignette.on{display:block;}
+
+/* ---------- pause ---------- */
+.pause-inner{position:relative;z-index:2;text-align:center;padding:36px 24px;width:100%;max-width:400px;}
+.pause-inner h2{font-size:26px;letter-spacing:.34em;color:var(--sand);margin-bottom:28px;}
+.pause-inner .menu-buttons{max-width:none;}
+
+/* ---------- key hints ---------- */
+.hints{
+  position:absolute;left:50%;bottom:16px;transform:translateX(-50%);
+  font-size:10px;letter-spacing:.18em;color:#5f6752;
+  display:flex;gap:18px;flex-wrap:wrap;justify-content:center;
+}
+.hints kbd{
+  font-family:inherit;border:1px solid rgba(201,185,138,.25);
+  padding:1px 5px;margin-right:4px;color:#8a9179;font-size:9px;
+}
+@media(max-width:700px){
+  .hints{display:none;}
+  #hudTopRight{transform:scale(.8);transform-origin:top right;}
+  #hudBottomLeft,#hudTopLeft{transform:scale(.85);transform-origin:bottom left;}
+  #hudTopLeft{transform-origin:top left;}
+}
+</style>
+</head>
+<body>
+
+<canvas id="game"></canvas>
+<div id="vignette"></div>
+
+<!-- ===================== HUD ===================== -->
+<div id="hud">
+  <div class="hud-panel" id="hudTopLeft">
+    <div class="hud-mission" id="hudMission">MISSION</div>
+    <div class="hud-objective" id="hudObjective">—</div>
+    <div class="hud-timer" id="hudTimer">00:00</div>
+  </div>
+
+  <div class="hud-panel" id="hudTopRight">
+    <canvas id="minimap" width="150" height="150"></canvas>
+    <div class="hud-compass" id="hudCompass">N</div>
+  </div>
+
+  <div class="hud-panel" id="hudBottomLeft">
+    <div class="hud-row"><span id="lblSpeed">SPEED</span><b id="hudSpeed">0</b></div>
+    <div class="hud-row" id="rowAlt" style="display:none"><span>ALTITUDE</span><b id="hudAlt">0</b></div>
+    <div class="hud-row"><span id="lblCond">HULL</span><b id="hudCond">100%</b></div>
+    <div class="bar-line"><i>HULL</i><div class="bar-track"><div class="bar-fill hull" id="barHull"></div></div></div>
+    <div class="bar-line" id="lineEng"><i>ENGINE</i><div class="bar-track"><div class="bar-fill eng" id="barEng"></div></div></div>
+    <div class="bar-line" id="lineTrk"><i>TRACKS</i><div class="bar-track"><div class="bar-fill trk" id="barTrk"></div></div></div>
+    <div class="bar-line" id="lineTur"><i>TURRET</i><div class="bar-track"><div class="bar-fill tur" id="barTur"></div></div></div>
+    <div class="bar-line" id="lineFuel" style="display:none"><i>FUEL</i><div class="bar-track"><div class="bar-fill fuel" id="barFuel"></div></div></div>
+  </div>
+
+  <div class="hud-panel" id="hudBottomRight">
+    <div class="hud-ammo"><span id="hudAmmo">30</span><small> / <span id="hudAmmoMax">30</span></small></div>
+    <div class="reload-track"><div class="reload-fill ready" id="hudReload"></div></div>
+    <div style="font-size:9px;letter-spacing:.24em;color:#7f876c;margin-top:8px" id="hudWeapon">MAIN GUN</div>
+  </div>
+
+  <div id="hudMsg"></div>
+</div>
+
+<!-- ===================== MAIN MENU ===================== -->
+<div class="screen" id="screenMenu">
+  <div class="menu-inner">
+    <h1 class="logo">IRON<span>FRONT</span></h1>
+    <div class="logo-sub">WORLD WAR</div>
+    <p class="tagline">EVERY VEHICLE HAS A ROLE.<br>EVERY MISSION HAS A COST.</p>
+    <div class="menu-buttons">
+      <button data-act="campaign">CAMPAIGN</button>
+      <button data-act="training">TRAINING GROUND</button>
+      <button data-act="vehicles">VEHICLE COLLECTION</button>
+      <button data-act="settings">SETTINGS</button>
+    </div>
+    <div class="footer">1944 · FICTIONAL EUROPEAN THEATRE · v1.0</div>
+  </div>
+</div>
+
+<!-- ===================== MISSION SELECT ===================== -->
+<div class="screen hidden" id="screenMissions">
+  <div class="list-inner">
+    <div class="list-head">
+      <div class="list-title">CAMPAIGN</div>
+      <button class="ghost" data-act="back">◄ BACK</button>
+    </div>
+    <div id="missionList"></div>
+  </div>
+</div>
+
+<!-- ===================== VEHICLES ===================== -->
+<div class="screen hidden" id="screenVehicles">
+  <div class="list-inner">
+    <div class="list-head">
+      <div class="list-title">VEHICLE COLLECTION</div>
+      <button class="ghost" data-act="back">◄ BACK</button>
+    </div>
+    <div class="veh-grid" id="vehGrid"></div>
+  </div>
+</div>
+
+<!-- ===================== SETTINGS ===================== -->
+<div class="screen hidden" id="screenSettings">
+  <div class="menu-inner">
+    <div class="list-title" style="margin-bottom:28px">SETTINGS</div>
+    <div class="menu-buttons">
+      <button data-act="toggleSound" id="btnSound">SOUND: ON</button>
+      <button data-act="resetProgress" class="danger">RESET CAMPAIGN PROGRESS</button>
+      <button class="ghost" data-act="back">◄ BACK</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== RESULTS ===================== -->
+<div class="screen hidden" id="screenResults">
+  <div class="res-inner">
+    <div class="res-rank" id="resRank">A</div>
+    <h2 class="res-title ok" id="resTitle">MISSION COMPLETE</h2>
+    <div class="res-reason" id="resReason"></div>
+    <div class="res-stats">
+      <div class="res-stat"><b id="resTime">0:00</b><i>TIME</i></div>
+      <div class="res-stat"><b id="resKills">0</b><i>DESTROYED</i></div>
+      <div class="res-stat"><b id="resHull">100%</b><i>HULL INTEGRITY</i></div>
+      <div class="res-stat"><b id="resAmmo">0</b><i>ROUNDS FIRED</i></div>
+    </div>
+    <div class="res-buttons">
+      <button data-act="retry">RETRY MISSION</button>
+      <button data-act="next" id="btnNext">NEXT MISSION</button>
+      <button class="ghost" data-act="toMenu">◄ HEADQUARTERS</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== PAUSE ===================== -->
+<div class="screen hidden" id="screenPause">
+  <div class="pause-inner">
+    <h2>PAUSED</h2>
+    <div class="menu-buttons">
+      <button data-act="resume">RESUME</button>
+      <button data-act="retry">RESTART MISSION</button>
+      <button class="ghost" data-act="toMenu">◄ ABORT TO HEADQUARTERS</button>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+/* ============================================================
+   IRON FRONT: WORLD WAR
+   A single-file WWII combined-arms vehicle combat game.
+   ============================================================ */
+
+/* ---------------------------- UTILITIES ---------------------------- */
+const TAU = Math.PI * 2;
+const clamp = (v,a,b)=> v<a?a:(v>b?b:v);
+const lerp  = (a,b,t)=> a+(b-a)*t;
+const rand  = (a,b)=> a + Math.random()*(b-a);
+const randInt = (a,b)=> Math.floor(rand(a,b+1));
+const dist  = (x1,y1,x2,y2)=> Math.hypot(x2-x1, y2-y1);
+const dist2 = (x1,y1,x2,y2)=>{const dx=x2-x1,dy=y2-y1;return dx*dx+dy*dy;};
+function angDiff(a,b){ let d=(b-a)%TAU; if(d>Math.PI)d-=TAU; if(d<-Math.PI)d+=TAU; return d; }
+function lerpAngle(a,b,t){ return a + angDiff(a,b)*t; }
+function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+function rrect(g,x,y,w,h,r){
+  r = Math.min(r, w/2, h/2);
+  g.beginPath();
+  g.moveTo(x+r,y);
+  g.arcTo(x+w,y,x+w,y+h,r);
+  g.arcTo(x+w,y+h,x,y+h,r);
+  g.arcTo(x,y+h,x,y,r);
+  g.arcTo(x,y,x+w,y,r);
+  g.closePath();
+}
+function segDist(px,py,x1,y1,x2,y2){
+  const dx=x2-x1, dy=y2-y1;
+  const l2 = dx*dx+dy*dy;
+  let t = l2 ? ((px-x1)*dx + (py-y1)*dy)/l2 : 0;
+  t = clamp(t,0,1);
+  return Math.hypot(px-(x1+dx*t), py-(y1+dy*t));
+}
+function fmtTime(s){
+  s = Math.max(0, Math.floor(s));
+  const m = Math.floor(s/60);
+  return String(m).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
+}
+
+/* ---------------------------- AUDIO ---------------------------- */
+const Sound = {
+  ctx:null, master:null, noiseBuf:null, muted:false,
+  engineOsc:null, engineGain:null, engineFilter:null, engineOn:false,
+
+  init(){
+    if (this.ctx) return;
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    this.ctx = new AC();
+    this.master = this.ctx.createGain();
+    this.master.gain.value = 0.32;
+    this.master.connect(this.ctx.destination);
+    // white noise buffer
+    const len = this.ctx.sampleRate * 1.0;
+    const b = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
+    const d = b.getChannelData(0);
+    for (let i=0;i<len;i++) d[i] = Math.random()*2-1;
+    this.noiseBuf = b;
+  },
+  resume(){ if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume(); },
+  noise(dur, freq, gain, type){
+    if (!this.ctx || this.muted) return;
+    const src = this.ctx.createBufferSource();
+    src.buffer = this.noiseBuf;
+    const f = this.ctx.createBiquadFilter();
+    f.type = type || 'lowpass';
+    f.frequency.value = freq;
+    const g = this.ctx.createGain();
+    const t = this.ctx.currentTime;
+    g.gain.setValueAtTime(gain, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    src.connect(f); f.connect(g); g.connect(this.master);
+    src.start(t); src.stop(t + dur);
+  },
+  gun(){
+    if (this.muted) return;
+    this.noise(0.28, 1500, 0.55, 'lowpass');
+    this.tone(90, 0.18, 0.25, 'square');
+  },
+  mg(){
+    if (this.muted) return;
+    this.noise(0.07, 3200, 0.22, 'bandpass');
+  },
+  hit(){
+    if (this.muted) return;
+    this.noise(0.20, 800, 0.45, 'lowpass');
+  },
+  boom(){
+    if (this.muted) return;
+    this.noise(0.9, 420, 0.85, 'lowpass');
+    this.tone(55, 0.7, 0.35, 'sawtooth');
+  },
+  tone(freq, dur, gain, type){
+    if (!this.ctx || this.muted) return;
+    const o = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    o.type = type || 'sine';
+    o.frequency.value = freq;
+    const t = this.ctx.currentTime;
+    g.gain.setValueAtTime(gain, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(this.master);
+    o.start(t); o.stop(t + dur);
+  },
+  ui(){ this.tone(520, 0.06, 0.06, 'square'); },
+
+  engineStart(){
+    if (!this.ctx || this.engineOn) return;
+    const o = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    const f = this.ctx.createBiquadFilter();
+    o.type = 'sawtooth';
+    o.frequency.value = 46;
+    f.type = 'lowpass'; f.frequency.value = 340;
+    g.gain.value = 0.0;
+    o.connect(f); f.connect(g); g.connect(this.master);
+    o.start();
+    g.gain.linearRampToValueAtTime(0.10, this.ctx.currentTime + 0.5);
+    this.engineOsc = o; this.engineGain = g; this.engineFilter = f;
+    this.engineOn = true;
+  },
+  engineSet(speed01, alt){
+    if (!this.engineOn || !this.ctx) return;
+    const t = this.ctx.currentTime;
+    this.engineOsc.frequency.setTargetAtTime(40 + speed01*95, t, 0.15);
+    if (this.engineFilter) this.engineFilter.frequency.setTargetAtTime(280 + speed01*900, t, 0.2);
+  },
+  engineStop(){
+    if (!this.engineOn || !this.ctx) return;
+    const t = this.ctx.currentTime;
+    try{
+      this.engineGain.gain.setTargetAtTime(0.0, t, 0.12);
+      this.engineOsc.stop(t + 0.6);
+    }catch(e){}
+    this.engineOn = false;
+  }
+};
+
+/* ---------------------------- SAVE ---------------------------- */
+const SAVE_KEY = 'ironfront_ww_save_v1';
+const Save = {
+  data:{ unlocked:1, ratings:{}, sound:true },
+  load(){
+    try{
+      const raw = localStorage.getItem(SAVE_KEY);
+      if (raw){
+        const d = JSON.parse(raw);
+        this.data = Object.assign(this.data, d);
+      }
+    }catch(e){}
+    if (this.data.sound === false) Sound.muted = true;
+  },
+  save(){
+    try{ localStorage.setItem(SAVE_KEY, JSON.stringify(this.data)); }catch(e){}
+  },
+  unlock(n){ if (n > this.data.unlocked){ this.data.unlocked = Math.min(n, MISSION_DEFS.length); this.save(); } },
+  setRating(i, r){ this.data.ratings[i] = r; this.save(); },
+  rating(i){ return this.data.ratings[i] || null; },
+  reset(){ this.data = { unlocked:1, ratings:{}, sound:this.data.sound }; this.save(); }
+};
+
+/* ---------------------------- CANVAS / VIEW ---------------------------- */
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+let VW = window.innerWidth, VH = window.innerHeight, DPR = 1;
+
+function resize(){
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  VW = window.innerWidth; VH = window.innerHeight;
+  canvas.width  = Math.floor(VW * DPR);
+  canvas.height = Math.floor(VH * DPR);
+  canvas.style.width = VW + 'px';
+  canvas.style.height = VH + 'px';
+}
+window.addEventListener('resize', resize);
+resize();
+
+/* ---------------------------- INPUT ---------------------------- */
+const Input = {
+  keys:{}, mouse:{x:0,y:0,down:false},
+  init(){
+    window.addEventListener('keydown', e=>{
+      if (['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Tab'].includes(e.code)) e.preventDefault();
+      if (e.repeat) return;
+      this.keys[e.code] = true;
+      if (e.code === 'Escape') togglePause();
+      if (e.code === 'KeyR' && Game.state === 'playing') { /* no-op placeholder */ }
+    });
+    window.addEventListener('keyup', e=>{ this.keys[e.code] = false; });
+    window.addEventListener('mousemove', e=>{ this.mouse.x = e.clientX; this.mouse.y = e.clientY; });
+    window.addEventListener('mousedown', e=>{ if (e.button === 0){ this.mouse.down = true; Sound.resume(); } });
+    window.addEventListener('mouseup',   e=>{ if (e.button === 0) this.mouse.down = false; });
+    window.addEventListener('blur', ()=>{ this.keys = {}; this.mouse.down = false; });
+    canvas.addEventListener('contextmenu', e=> e.preventDefault());
+  },
+  key(c){ return !!this.keys[c]; }
+};
+Input.init();
+
+/* ---------------------------- BIOMES ---------------------------- */
+const BIOMES = {
+  summer:{
+    ground:'#5b6a3c', ground2:'#68784a', ground3:'#4d5c33', rough:'#6f6a45',
+    road:'#6d6553', roadLine:'#8a8271',
+    tree:'#33431f', tree2:'#42562a', trunk:'#3a3227',
+    bld:'#7d7565', bldRoof:'#5d564a', bldShadow:'#2c2a23',
+    name:'SUMMER'
+  },
+  winter:{
+    ground:'#b2b6ac', ground2:'#c4c8be', ground3:'#a2a69c', rough:'#9a9c90',
+    road:'#8d8d86', roadLine:'#a8a8a0',
+    tree:'#3d4b3d', tree2:'#4d5d4b', trunk:'#3a3227',
+    bld:'#8e8e88', bldRoof:'#6d6d67', bldShadow:'#3a3a38',
+    name:'WINTER'
+  },
+  industrial:{
+    ground:'#6a6355', ground2:'#78705f', ground3:'#5b5448', rough:'#4e4a40',
+    road:'#54504a', roadLine:'#6e6a62',
+    tree:'#454a30', tree2:'#555c3c', trunk:'#3a3227',
+    bld:'#5f5c56', bldRoof:'#454340', bldShadow:'#22211f',
+    name:'INDUSTRIAL'
+  }
+};
+
+/* ---------------------------- VEHICLE SPECS ---------------------------- */
+const TANK_SPECS = {
+  sherman:{ name:'M4 SHERMAN', cls:'MEDIUM TANK', maxSpeed:108, accel:78, turnRate:1.55,
+            reloadTime:2.1, ammo:34, damage:34, shellSpeed:900, turretSpeed:1.7, hp:100,
+            radius:24, len:50, wid:32 },
+  churchill:{ name:'CHURCHILL', cls:'INFANTRY TANK', maxSpeed:78, accel:52, turnRate:1.15,
+            reloadTime:2.5, ammo:40, damage:38, shellSpeed:820, turretSpeed:1.15, hp:145,
+            radius:27, len:58, wid:36 },
+  cromwell:{ name:'CROMWELL', cls:'CRUISER TANK', maxSpeed:132, accel:95, turnRate:1.85,
+            reloadTime:2.3, ammo:30, damage:30, shellSpeed:920, turretSpeed:1.9, hp:88,
+            radius:23, len:48, wid:30 }
+};
+const AIR_SPECS = {
+  fighter:{ name:'SPITFIRE', cls:'FIGHTER', maxSpeed:265, turnRate:1.75, hp:60,
+            fuelMax:100, ammo:320, gunRate:0.085, dmg:9, bulletSpeed:820, radius:22 },
+  fighter2:{ name:'HURRICANE', cls:'FIGHTER', maxSpeed:238, turnRate:1.55, hp:78,
+            fuelMax:110, ammo:360, gunRate:0.08, dmg:10, bulletSpeed:800, radius:24 },
+  fighter3:{ name:'MUSTANG', cls:'FIGHTER', maxSpeed:300, turnRate:1.6, hp:66,
+            fuelMax:120, ammo:340, gunRate:0.075, dmg:10, bulletSpeed:880, radius:23 }
+};
+const TRUCK_SPECS = {
+  truck:{ name:'CARGO TRUCK', cls:'TRANSPORT', maxSpeed:150, accel:95, turnRate:1.35,
+          hp:130, radius:22, len:52, wid:26, steerMax:0.9 }
+};
+const ENEMY_TANK_SPECS = {
+  heavy:{ name:'ENEMY HEAVY', maxSpeed:88, accel:62, turnRate:1.2,
+          reloadTime:2.6, ammo:999, damage:26, shellSpeed:820, turretSpeed:1.1, hp:120,
+          radius:26, len:54, wid:34 }
+};
+
+/* ---------------------------- MISSIONS ---------------------------- */
+const MISSION_DEFS = [
+  /* CHAPTER I */
+  { name:'First Deployment', type:'tank', vehicle:'sherman', biome:'summer', seed:101,
+    enemies:3, timeLimit:300,
+    brief:'Your first command. Clear the enemy patrol from the approach road.',
+    objectives:[{type:'destroy', need:3}] },
+
+  { name:'Broken Road', type:'transport', vehicle:'truck', biome:'summer', seed:102,
+    enemies:2, timeLimit:170,
+    brief:'Deliver fuel and ammunition to the forward depot. The road is not safe.',
+    objectives:[{type:'deliver'}] },
+
+  { name:'Steel Horizon', type:'tank', vehicle:'sherman', biome:'summer', seed:103,
+    enemies:5, timeLimit:360,
+    brief:'Push through the village and take the crossroads. Enemy armour is dug in.',
+    objectives:[{type:'destroy', need:4},{type:'reach'}] },
+
+  { name:'Air Cover', type:'aircraft', vehicle:'fighter', biome:'summer', seed:104,
+    enemies:3, timeLimit:240,
+    brief:'Fly the reconnaissance route and clear enemy fighters from the corridor.',
+    objectives:[{type:'waypoints', count:4},{type:'destroy', need:3}] },
+
+  /* CHAPTER II */
+  { name:'Frozen Ground', type:'tank', vehicle:'churchill', biome:'winter', seed:105,
+    enemies:4, timeLimit:330,
+    brief:'The counteroffensive begins in the snow. Break the enemy spearhead.',
+    objectives:[{type:'destroy', need:4}] },
+
+  { name:'Silent Skies', type:'aircraft', vehicle:'fighter2', biome:'winter', seed:106,
+    enemies:2, timeLimit:220,
+    brief:'Photograph the enemy build-up. Complete the route and stay alive.',
+    objectives:[{type:'waypoints', count:5}] },
+
+  { name:'Supply Lines', type:'transport', vehicle:'truck', biome:'winter', seed:107,
+    enemies:3, timeLimit:200,
+    brief:'Run the convoy through the frozen pass. Deliver before nightfall.',
+    objectives:[{type:'deliver'}] },
+
+  { name:'Defensive Perimeter', type:'tank', vehicle:'sherman', biome:'winter', seed:108,
+    enemies:4, timeLimit:200, waves:true,
+    brief:'Hold the line for two minutes. Reinforcements are on the way.',
+    objectives:[{type:'survive', need:120}] },
+
+  /* CHAPTER III */
+  { name:'Industrial Zone', type:'tank', vehicle:'cromwell', biome:'industrial', seed:109,
+    enemies:6, timeLimit:360,
+    brief:'The factory district is fortified. Clear the armour and break through.',
+    objectives:[{type:'destroy', need:5},{type:'reach'}] },
+
+  { name:'Final Sortie', type:'aircraft', vehicle:'fighter3', biome:'industrial', seed:110,
+    enemies:4, timeLimit:260,
+    brief:'The last enemy air group is massing. Destroy them over the industrial belt.',
+    objectives:[{type:'destroy', need:4},{type:'waypoints', count:3}] },
+
+  { name:'Last Convoy', type:'transport', vehicle:'truck', biome:'industrial', seed:111,
+    enemies:4, timeLimit:190,
+    brief:'One final delivery. Get the convoy to the staging area intact.',
+    objectives:[{type:'deliver'}] },
+
+  { name:'Iron Front', type:'tank', vehicle:'sherman', biome:'industrial', seed:112,
+    enemies:8, timeLimit:420,
+    brief:'Everything ends here. Destroy the remaining armour and take the command post.',
+    objectives:[{type:'destroy', need:6},{type:'reach'}] }
+];
+
+const TRAINING_DEF = {
+  name:'Training Ground', type:'tank', vehicle:'sherman', biome:'summer', seed:999,
+  enemies:0, timeLimit:0, training:true,
+  brief:'Practise movement, turret control and gunnery. No enemy contact.',
+  objectives:[{type:'training'}]
+};
+
+const CHAPTERS = [
+  { label:'CHAPTER I — THE ADVANCE', from:0, to:3 },
+  { label:'CHAPTER II — THE COUNTEROFFENSIVE', from:4, to:7 },
+  { label:'CHAPTER III — THE FINAL FRONT', from:8, to:11 }
+];
+
+/* ---------------------------- GAME STATE ---------------------------- */
+const Game = {
+  state:'menu',      // menu | missions | vehicles | settings | playing | paused | results
+  missionIndex:0,
+  isTraining:false,
+  flash:0,
+  msgTimer:0
+};
+let M = null;        // current mission runtime
+let cam = { x:0, y:0, zoom:1, shake:0 };
+
+/* ---------------------------- MAP GENERATION ---------------------------- */
+const WORLD_SIZE = 3000;
+
+function buildMap(def){
+  const rnd = mulberry32(def.seed);
+  const B = BIOMES[def.biome] || BIOMES.summer;
+  const S = WORLD_SIZE;
+
+  const tc = document.createElement('canvas');
+  tc.width = S; tc.height = S;
+  const g = tc.getContext('2d');
+
+  /* base ground */
+  g.fillStyle = B.ground;
+  g.fillRect(0,0,S,S);
+
+  /* organic patches */
+  for (let i=0;i<520;i++){
+    const x = rnd()*S, y = rnd()*S;
+    const r = 40 + rnd()*190;
+    g.globalAlpha = 0.05 + rnd()*0.13;
+    g.fillStyle = rnd()<0.5 ? B.ground2 : B.ground3;
+    g.beginPath();
+    g.ellipse(x, y, r, r*(0.4+rnd()*0.9), rnd()*Math.PI, 0, TAU);
+    g.fill();
+  }
+  g.globalAlpha = 1;
+
+  /* rough patches (slow terrain) */
+  const roughPatches = [];
+  for (let i=0;i<26;i++){
+    const x = rnd()*S, y = rnd()*S, r = 70+rnd()*130;
+    roughPatches.push({x,y,r});
+    g.globalAlpha = 0.22;
+    g.fillStyle = B.rough;
+    g.beginPath(); g.ellipse(x,y,r,r*0.7,rnd()*Math.PI,0,TAU); g.fill();
+  }
+  g.globalAlpha = 1;
+
+  /* roads — one main NORTH-SOUTH highway plus 1–2 east–west crossroads */
+  const roads = [];
+
+  /* main highway: runs the full length of the map, through the centre */
+  {
+    const pts = [];
+    for (let s=0; s<=8; s++){
+      const t = s/8;
+      const jitter = (rnd()-0.5)*170 * Math.sin(t*Math.PI);
+      pts.push({ x: clamp(S*0.5 + jitter, S*0.34, S*0.66), y: t*S });
+    }
+    roads.push(pts);
+  }
+
+  /* crossroads branching east–west */
+  const crossCount = 1 + Math.floor(rnd()*2);
+  for (let i=0;i<crossCount;i++){
+    const pts = [];
+    const base = S*(0.24 + rnd()*0.48);
+    for (let s=0; s<=6; s++){
+      const t = s/6;
+      const jitter = (rnd()-0.5)*300 * Math.sin(t*Math.PI);
+      pts.push({ x: t*S, y: clamp(base + jitter, 110, S-110) });
+    }
+    roads.push(pts);
+  }
+
+  /* draw all roads identically */
+  for (const pts of roads){
+    g.strokeStyle = B.road;
+    g.lineWidth = 38;
+    g.lineCap = 'round';
+    g.lineJoin = 'round';
+    g.beginPath();
+    g.moveTo(pts[0].x, pts[0].y);
+    for (let k=1;k<pts.length;k++) g.lineTo(pts[k].x, pts[k].y);
+    g.stroke();
+
+    g.strokeStyle = B.roadLine;
+    g.lineWidth = 2.5;
+    g.setLineDash([22,20]);
+    g.globalAlpha = 0.5;
+    g.beginPath();
+    g.moveTo(pts[0].x, pts[0].y);
+    for (let k=1;k<pts.length;k++) g.lineTo(pts[k].x, pts[k].y);
+    g.stroke();
+    g.setLineDash([]);
+    g.globalAlpha = 1;
+  }
+
+  const nearRoad = (x,y,d)=>{
+    for (const road of roads){
+      for (let i=0;i<road.length-1;i++){
+        if (segDist(x,y,road[i].x,road[i].y,road[i+1].x,road[i+1].y) < d) return true;
+      }
+    }
+    return false;
+  };
+
+  /* buildings */
+  const obstacles = [];
+  const bldCount = def.type === 'aircraft' ? 26 : 46;
+  for (let i=0;i<bldCount;i++){
+    let x,y,w,h,tries = 0;
+    do{
+      x = 140 + rnd()*(S-280);
+      y = 140 + rnd()*(S-280);
+      w = 60 + rnd()*90;
+      h = 60 + rnd()*90;
+      tries++;
+    } while ((nearRoad(x,y,90) ||
+              (Math.abs(x - S*0.5) < 300 && y > S*0.58) ||   /* south spawn corridor */
+              (Math.abs(x - S*0.5) < 220 && y < S*0.24))     /* north goal approach */
+             && tries < 30);
+
+    obstacles.push({ kind:'rect', x, y, w, h, b:true });
+
+    /* shadow */
+    g.fillStyle = B.bldShadow;
+    g.globalAlpha = 0.45;
+    g.fillRect(x-w/2+7, y-h/2+9, w, h);
+    g.globalAlpha = 1;
+
+    /* body */
+    g.fillStyle = B.bld;
+    g.fillRect(x-w/2, y-h/2, w, h);
+
+    /* roof */
+    g.fillStyle = B.bldRoof;
+    g.fillRect(x-w/2+6, y-h/2+6, w-12, h-12);
+
+    /* roof lines */
+    g.strokeStyle = 'rgba(0,0,0,.25)';
+    g.lineWidth = 1;
+    for (let k=1;k<3;k++){
+      g.beginPath();
+      g.moveTo(x-w/2+6, y-h/2+6 + (h-12)*k/3);
+      g.lineTo(x+w/2-6, y-h/2+6 + (h-12)*k/3);
+      g.stroke();
+    }
+  }
+
+  /* trees */
+  const treeCount = def.biome === 'industrial' ? 150 : 300;
+  for (let i=0;i<treeCount;i++){
+    let x,y,r,tries=0;
+    do{
+      x = 60 + rnd()*(S-120);
+      y = 60 + rnd()*(S-120);
+      r = 13 + rnd()*11;
+      tries++;
+    } while ((nearRoad(x,y,55) ||
+              (Math.abs(x - S*0.5) < 280 && y > S*0.60) ||
+              (Math.abs(x - S*0.5) < 200 && y < S*0.22))
+             && tries<20);
+
+    obstacles.push({ kind:'circle', x, y, r });
+
+    /* trunk/shadow */
+    g.fillStyle = 'rgba(0,0,0,.30)';
+    g.beginPath(); g.ellipse(x+5, y+6, r*0.9, r*0.6, 0, 0, TAU); g.fill();
+    /* canopy */
+    g.fillStyle = B.tree;
+    g.beginPath(); g.arc(x, y, r, 0, TAU); g.fill();
+    g.fillStyle = B.tree2;
+    g.beginPath(); g.arc(x - r*0.25, y - r*0.25, r*0.62, 0, TAU); g.fill();
+  }
+
+  /* craters / decals */
+  for (let i=0;i<70;i++){
+    const x = rnd()*S, y = rnd()*S, r = 8 + rnd()*22;
+    g.globalAlpha = 0.22;
+    g.fillStyle = '#1c1a14';
+    g.beginPath(); g.arc(x,y,r,0,TAU); g.fill();
+    g.globalAlpha = 0.1;
+    g.strokeStyle = '#000';
+    g.lineWidth = 3;
+    g.beginPath(); g.arc(x,y,r*1.5,0,TAU); g.stroke();
+  }
+  g.globalAlpha = 1;
+
+  /* world border */
+  g.strokeStyle = 'rgba(0,0,0,.55)';
+  g.lineWidth = 40;
+  g.strokeRect(0,0,S,S);
+
+  /* minimap base */
+  const mm = document.createElement('canvas');
+  mm.width = 150; mm.height = 150;
+  const mg = mm.getContext('2d');
+  mg.drawImage(tc, 0, 0, 150, 150);
+  mg.fillStyle = 'rgba(0,0,0,.35)';
+  mg.fillRect(0,0,150,150);
+
+  return { terrain: tc, minimap: mm, obstacles, roads, roughPatches, size:S, biome:B };
+}
+
+/* ---------------------------- VEHICLE FACTORY ---------------------------- */
+function makeTank(x,y,angle,spec,isPlayer,isEnemy){
+  return {
+    kind:'tank', x, y, angle, speed:0,
+    turret: angle,
+    hp: spec.hp, maxHp: spec.hp,
+    engine:100, tracks:100, turretHp:100,
+    reload: isEnemy ? rand(0.6,1.8) : 0,
+    spec,
+    ammo: spec.ammo, maxAmmo: spec.ammo,
+    radius: spec.radius,
+    isPlayer: !!isPlayer, isEnemy: !!isEnemy,
+    alive: true, fireFlash:0, hitFlash:0,
+    shotsFired: 0,
+    ai:{ state:'idle', timer:0, retarget:0, aimErr:0 },
+    trailTimer:0
+  };
+}
+
+function makeTruck(x,y,angle,spec){
+  return {
+    kind:'truck', x, y, angle, speed:0, steer:0,
+    hp: spec.hp, maxHp: spec.hp,
+    engine:100, tracks:100, turretHp:100,
+    spec, radius: spec.radius,
+    isPlayer:true, isEnemy:false,
+    alive:true, hitFlash:0, fireFlash:0,
+    cargo: true, shotsFired:0
+  };
+}
+
+function makeAircraft(x,y,angle,spec,isPlayer){
+  return {
+    kind:'aircraft', x, y, angle,
+    speed: spec.maxSpeed*0.62,
+    throttle: 0.62,
+    alt: isPlayer ? 900 : rand(700,1200),
+    bank: 0, pitch: 0,
+    hp: spec.hp, maxHp: spec.hp,
+    fuel: spec.fuelMax, fuelMax: spec.fuelMax,
+    engine:100, tracks:100, turretHp:100,
+    ammo: spec.ammo, maxAmmo: spec.ammo,
+    gunTimer: 0,
+    spec, radius: spec.radius,
+    isPlayer: !!isPlayer, isEnemy: !isPlayer,
+    alive:true, hitFlash:0, fireFlash:0,
+    shotsFired:0,
+    ai:{ state:'patrol', timer:0 }
+  };
+}
+
+/* ---------------------------- MISSION INIT ---------------------------- */
+function startMission(def, index, isTraining){
+  Sound.init(); Sound.resume();
+
+  Game.missionIndex = index;
+  Game.isTraining = !!isTraining;
+  Game.flash = 0;
+
+  const map = buildMap(def);
+  const S = map.size;
+
+  /* --- player spawn (south edge, facing north) --- */
+  let px, py, pAngle;
+  if (def.type === 'aircraft'){
+    px = S*0.50; py = S*0.86; pAngle = -Math.PI / 2;
+  } else {
+    px = S*0.50; py = S*0.84; pAngle = -Math.PI / 2;
+
+    /* snap the spawn onto the main road so the player starts on tarmac */
+    if (map.roads.length){
+      const main = map.roads[0];
+      let best = main[0], bd = 1e9;
+      for (const pt of main){
+        const d = Math.abs(pt.y - py);
+        if (d < bd){ bd = d; best = pt; }
+      }
+      px = best.x; py = best.y;
+    }
+
+    /* nudge away from any obstacle (northwards, to stay on the corridor) */
+    for (let i=0;i<80;i++){
+      let blocked = false;
+      for (const o of map.obstacles){
+        if (o.kind==='circle'){
+          if (dist(px,py,o.x,o.y) < o.r + 60) { blocked = true; break; }
+        } else {
+          if (Math.abs(px-o.x) < o.w/2+60 && Math.abs(py-o.y) < o.h/2+60){ blocked = true; break; }
+        }
+      }
+      if (!blocked) break;
+      px += (i%2?20:-20); py -= 28;
+    }
+  }
+
+  /* --- player vehicle --- */
+  let player;
+  if (def.type === 'tank'){
+    player = makeTank(px, py, pAngle, TANK_SPECS[def.vehicle] || TANK_SPECS.sherman, true, false);
+  } else if (def.type === 'transport'){
+    player = makeTruck(px, py, pAngle, TRUCK_SPECS[def.vehicle] || TRUCK_SPECS.truck);
+  } else {
+    player = makeAircraft(px, py, pAngle, AIR_SPECS[def.vehicle] || AIR_SPECS.fighter, true);
+  }
+
+  /* --- goal zone --- */
+  const goal = { x: S*0.86, y: S*0.5 };
+  if (def.type === 'transport'){
+    goal.x = S*0.88;
+    goal.y = S*(0.28 + (mulberry32(def.seed+7)())*0.44);
+  }
+
+  /* --- enemies --- */
+  const enemies = [];
+  const enemyCount = def.enemies || 0;
+  for (let i=0;i<enemyCount;i++){
+    let ex, ey, tries = 0;
+    do{
+      ex = S*0.45 + Math.random()*S*0.45;
+      ey = S*0.12 + Math.random()*S*0.76;
+      tries++;
+    } while (dist(ex,ey,px,py) < 700 && tries < 60);
+
+    if (def.type === 'aircraft'){
+      const e = makeAircraft(ex, ey, Math.PI, AIR_SPECS.fighter2, false);
+      e.isEnemy = true;
+      enemies.push(e);
+    } else {
+      const e = makeTank(ex, ey, rand(0,TAU), ENEMY_TANK_SPECS.heavy, false, true);
+      e.isEnemy = true;
+      enemies.push(e);
+    }
+  }
+
+  /* --- objectives --- */
+  const objectives = [];
+  const wpCount = (def.objectives.find(o=>o.type==='waypoints')||{}).count || 0;
+  for (const od of def.objectives){
+    if (od.type === 'reach' || od.type === 'deliver'){
+      objectives.push({ type: od.type, x: goal.x, y: goal.y, r: 130, got:0, label: od.type==='deliver'?'DELIVER CARGO':'REACH OBJECTIVE' });
+    } else if (od.type === 'destroy'){
+      objectives.push({ type:'destroy', need: od.need, got:0, label:'DESTROY ENEMY ARMOUR' });
+    } else if (od.type === 'survive'){
+      objectives.push({ type:'survive', need: od.need, got:0, label:'HOLD POSITION' });
+    } else if (od.type === 'waypoints'){
+      const pts = [];
+      const rnd = mulberry32(def.seed + 31);
+      for (let i=0;i<od.count;i++){
+        const t = (i+1)/(od.count+1);
+        pts.push({
+          x: S*0.5 + (rnd()-0.5)*S*0.50,
+          y: S*(0.82 - t*0.66) + (rnd()-0.5)*100,
+          r: 135, done:false
+        });
+      }
+      objectives.push({ type:'waypoints', points: pts, got:0, label:'FLY RECON ROUTE' });
+    } else if (od.type === 'training'){
+      objectives.push({ type:'training', label:'TRAINING EXERCISE' });
+    }
+  }
+
+  M = {
+    def, index, isTraining:!!isTraining,
+    map,
+    size: S,
+    player,
+    enemies,
+    projectiles: [],
+    particles: [],
+    obstacles: map.obstacles,
+    roads: map.roads,
+    roughPatches: map.roughPatches,
+    objectives,
+    goal,
+    elapsed: 0,
+    timer: def.timeLimit || 0,
+    kills: 0,
+    waveTimer: 0,
+    status: 'active',
+    biome: map.biome,
+    hintTimer: 0,
+    completed: false
+  };
+
+  cam.x = player.x; cam.y = player.y;
+  cam.zoom = def.type === 'aircraft' ? 0.62 : 1.0;
+  cam.shake = 0;
+
+  Game.state = 'playing';
+  hideAllScreens();
+  document.getElementById('hud').classList.add('on');
+  document.getElementById('vignette').classList.add('on');
+
+  /* HUD shape */
+  setupHUDForVehicle(player);
+  renderMinimapStatic();
+
+  Sound.engineStart();
+  showMessage(def.training ? 'TRAINING EXERCISE — NO ENEMY CONTACT' : 'MISSION START — ' + def.name.toUpperCase(), 2.6);
+}
+
+/* ---------------------------- HUD SETUP ---------------------------- */
+const HUDel = {
+  mission: document.getElementById('hudMission'),
+  objective: document.getElementById('hudObjective'),
+  timer: document.getElementById('hudTimer'),
+  speed: document.getElementById('hudSpeed'),
+  lblSpeed: document.getElementById('lblSpeed'),
+  cond: document.getElementById('hudCond'),
+  lblCond: document.getElementById('lblCond'),
+  alt: document.getElementById('hudAlt'),
+  rowAlt: document.getElementById('rowAlt'),
+  barHull: document.getElementById('barHull'),
+  barEng: document.getElementById('barEng'),
+  barTrk: document.getElementById('barTrk'),
+  barTur: document.getElementById('barTur'),
+  barFuel: document.getElementById('barFuel'),
+  lineEng: document.getElementById('lineEng'),
+  lineTrk: document.getElementById('lineTrk'),
+  lineTur: document.getElementById('lineTur'),
+  lineFuel: document.getElementById('lineFuel'),
+  ammo: document.getElementById('hudAmmo'),
+  ammoMax: document.getElementById('hudAmmoMax'),
+  reload: document.getElementById('hudReload'),
+  weapon: document.getElementById('hudWeapon'),
+  compass: document.getElementById('hudCompass'),
+  msg: document.getElementById('hudMsg'),
+  minimap: document.getElementById('minimap')
+};
+const mmCtx = HUDel.minimap.getContext('2d');
+let minimapImg = null;
+
+function setupHUDForVehicle(v){
+  const isAir = v.kind === 'aircraft';
+  HUDel.lblSpeed.textContent = isAir ? 'AIRSPEED' : 'SPEED';
+  HUDel.lblCond.textContent  = isAir ? 'CONDITION' : 'HULL';
+  HUDel.rowAlt.style.display = isAir ? 'flex' : 'none';
+  HUDel.lineEng.style.display = isAir ? 'none' : 'flex';
+  HUDel.lineTrk.style.display = isAir ? 'none' : 'flex';
+  HUDel.lineTur.style.display = isAir ? 'none' : 'flex';
+  HUDel.lineFuel.style.display = isAir ? 'flex' : 'none';
+  HUDel.weapon.textContent = isAir ? 'MACHINE GUNS' : (v.kind === 'truck' ? 'UNARMED' : 'MAIN GUN');
+  HUDel.ammoMax.textContent = v.maxAmmo || 0;
+}
+
+function renderMinimapStatic(){
+  if (!M) return;
+  minimapImg = M.map.minimap;
+}
+
+function updateHUD(){
+  if (!M) return;
+  const p = M.player;
+
+  HUDel.mission.textContent = M.def.name.toUpperCase();
+
+  /* objectives */
+  let objHTML = '';
+  for (const o of M.objectives){
+    let txt = o.label, done = false;
+    if (o.type === 'destroy'){ txt += ` — ${Math.min(o.got,o.need)}/${o.need}`; done = o.got >= o.need; }
+    else if (o.type === 'survive'){
+      const left = Math.max(0, o.need - M.elapsed);
+      txt += ` — ${Math.ceil(left)}s`; done = left <= 0;
+    }
+    else if (o.type === 'waypoints'){ txt += ` — ${o.got}/${o.points.length}`; done = o.got >= o.points.length; }
+    else if (o.type === 'reach' || o.type === 'deliver'){ done = !!o.got; }
+    else if (o.type === 'training'){ txt = 'TRAINING EXERCISE'; done = false; }
+    objHTML += `<div class="${done?'done':''}">${done?'✔':'▸'} ${txt}</div>`;
+  }
+  HUDel.objective.innerHTML = objHTML;
+
+  /* timer */
+  if (M.timer > 0){
+    HUDel.timer.textContent = fmtTime(M.timer);
+    HUDel.timer.classList.toggle('warn', M.timer < 30);
+  } else {
+    HUDel.timer.textContent = fmtTime(M.elapsed);
+    HUDel.timer.classList.remove('warn');
+  }
+
+  /* speed */
+  if (p.kind === 'aircraft'){
+    HUDel.speed.textContent = Math.round(Math.abs(p.speed) * 1.6) + ' KPH';
+    HUDel.alt.textContent = Math.round(p.alt) + ' M';
+  } else {
+    HUDel.speed.textContent = Math.round(Math.abs(p.speed) * 0.9) + ' KPH';
+  }
+
+  /* condition */
+  const hullPct = clamp(p.hp / p.maxHp, 0, 1);
+  HUDel.cond.textContent = Math.round(hullPct*100) + '%';
+  HUDel.cond.classList.toggle('hot', hullPct < 0.35);
+
+  HUDel.barHull.style.width = (hullPct*100) + '%';
+  HUDel.barHull.classList.toggle('warn', hullPct < 0.3);
+  HUDel.barEng.style.width  = p.engine + '%';
+  HUDel.barEng.classList.toggle('warn', p.engine < 35);
+  HUDel.barTrk.style.width  = p.tracks + '%';
+  HUDel.barTrk.classList.toggle('warn', p.tracks < 35);
+  HUDel.barTur.style.width  = p.turretHp + '%';
+  HUDel.barTur.classList.toggle('warn', p.turretHp < 35);
+
+  if (p.kind === 'aircraft'){
+    const f = clamp(p.fuel / p.fuelMax, 0, 1);
+    HUDel.barFuel.style.width = (f*100) + '%';
+    HUDel.barFuel.classList.toggle('warn', f < 0.25);
+  }
+
+  /* ammo / reload */
+  if (p.kind === 'tank'){
+    HUDel.ammo.textContent = p.ammo;
+    const r = 1 - clamp(p.reload / p.spec.reloadTime, 0, 1);
+    HUDel.reload.style.width = (r*100) + '%';
+    HUDel.reload.classList.toggle('ready', r >= 1);
+  } else if (p.kind === 'aircraft'){
+    HUDel.ammo.textContent = p.ammo;
+    HUDel.reload.style.width = '100%';
+    HUDel.reload.classList.add('ready');
+  } else {
+    HUDel.ammo.textContent = '—';
+    HUDel.reload.style.width = '0%';
+  }
+
+  /* compass */
+  const heading = ((p.angle * 180/Math.PI) + 90 + 360) % 360;
+  const dirs = ['N','NE','E','SE','S','SW','W','NW'];
+  HUDel.compass.textContent = dirs[Math.round(heading/45) % 8] + ' ' + Math.round(heading) + '°';
+
+  drawMinimap();
+
+  /* message fade */
+  if (Game.msgTimer > 0){
+    Game.msgTimer -= 1/60;
+    if (Game.msgTimer <= 0) HUDel.msg.classList.remove('show');
+  }
+}
+
+function showMessage(text, dur){
+  HUDel.msg.textContent = text;
+  HUDel.msg.classList.add('show');
+  Game.msgTimer = dur || 2.5;
+}
+
+function drawMinimap(){
+  if (!M || !minimapImg) return;
+  const w = 150, h = 150;
+  mmCtx.clearRect(0,0,w,h);
+  mmCtx.drawImage(minimapImg, 0, 0, w, h);
+
+  const sx = w / M.size, sy = h / M.size;
+
+  /* goal */
+  for (const o of M.objectives){
+    if (o.type === 'reach' || o.type === 'deliver'){
+      mmCtx.strokeStyle = '#a9c47a';
+      mmCtx.lineWidth = 1.6;
+      mmCtx.beginPath();
+      mmCtx.arc(o.x*sx, o.y*sy, 6, 0, TAU);
+      mmCtx.stroke();
+    }
+    if (o.type === 'waypoints'){
+      for (const wp of o.points){
+        mmCtx.fillStyle = wp.done ? 'rgba(169,196,122,.4)' : '#c9b98a';
+        mmCtx.beginPath(); mmCtx.arc(wp.x*sx, wp.y*sy, 3, 0, TAU); mmCtx.fill();
+      }
+    }
+  }
+
+  /* enemies */
+  for (const e of M.enemies){
+    if (!e.alive) continue;
+    mmCtx.fillStyle = '#c9553c';
+    mmCtx.beginPath(); mmCtx.arc(e.x*sx, e.y*sy, 2.6, 0, TAU); mmCtx.fill();
+  }
+
+  /* player */
+  const p = M.player;
+  mmCtx.save();
+  mmCtx.translate(p.x*sx, p.y*sy);
+  mmCtx.rotate(p.angle);
+  mmCtx.fillStyle = '#e9e5d6';
+  mmCtx.beginPath();
+  mmCtx.moveTo(5,0); mmCtx.lineTo(-3,3.5); mmCtx.lineTo(-3,-3.5);
+  mmCtx.closePath(); mmCtx.fill();
+  mmCtx.restore();
+}
+
+/* ---------------------------- PARTICLES ---------------------------- */
+function addParticle(x,y,vx,vy,life,size,color,type){
+  M.particles.push({ x, y, vx, vy, life, maxLife:life, size, color, type:type||'smoke' });
+}
+function burst(x,y,count,color,speed,size,life){
+  for (let i=0;i<count;i++){
+    const a = Math.random()*TAU;
+    const s = rand(speed*0.3, speed);
+    addParticle(x, y, Math.cos(a)*s, Math.sin(a)*s,
+      rand(life*0.6, life), rand(size*0.5, size), color, 'spark');
+  }
+}
+function explosion(x,y,scale){
+  const s = scale || 1;
+  burst(x,y, Math.round(18*s), '#e0a24a', 260*s, 4*s, 0.7);
+  burst(x,y, Math.round(14*s), '#f0e0a0', 180*s, 3*s, 0.5);
+  for (let i=0;i<Math.round(10*s);i++){
+    const a = Math.random()*TAU, sp = rand(20, 110)*s;
+    addParticle(x, y, Math.cos(a)*sp, Math.sin(a)*sp, rand(1.0,2.2), rand(10,26)*s, 'rgba(60,55,48,0.55)', 'smoke');
+  }
+  cam.shake = Math.max(cam.shake, 9*s);
+  Sound.boom();
+}
+
+function updateParticles(dt){
+  const arr = M.particles;
+  for (let i=arr.length-1;i>=0;i--){
+    const p = arr[i];
+    p.life -= dt;
+    if (p.life <= 0){ arr.splice(i,1); continue; }
+    p.x += p.vx*dt; p.y += p.vy*dt;
+    if (p.type === 'smoke'){
+      p.vx *= 0.97; p.vy *= 0.97;
+      p.size += dt*14;
+    } else {
+      p.vx *= 0.94; p.vy *= 0.94;
+    }
+  }
+}
+
+/* ---------------------------- PROJECTILES ---------------------------- */
+function fireShell(from, angle, spec, owner){
+  const muzzle = from.radius + 16;
+  const x = from.x + Math.cos(angle)*muzzle;
+  const y = from.y + Math.sin(angle)*muzzle;
+  const spd = spec.shellSpeed;
+  M.projectiles.push({
+    kind:'shell', x, y,
+    vx: Math.cos(angle)*spd, vy: Math.sin(angle)*spd,
+    life: 2.2, dmg: spec.damage, owner,
+    radius: 4
+  });
+  from.fireFlash = 0.09;
+  from.reload = spec.reloadTime;
+  from.ammo--;
+  from.shotsFired++;
+  /* muzzle flash particles */
+  burst(x, y, 8, '#ffd27a', 150, 3, 0.22);
+  for (let i=0;i<4;i++){
+    const a = angle + rand(-0.4,0.4);
+    addParticle(x, y, Math.cos(a)*rand(20,70), Math.sin(a)*rand(20,70), rand(0.7,1.4), rand(8,18), 'rgba(90,85,75,0.5)', 'smoke');
+  }
+  cam.shake = Math.max(cam.shake, 3.5);
+  Sound.gun();
+}
+
+function fireBullet(from, angle, spec, owner){
+  const x = from.x + Math.cos(angle)*(from.radius+10);
+  const y = from.y + Math.sin(angle)*(from.radius+10);
+  M.projectiles.push({
+    kind:'bullet', x, y,
+    vx: Math.cos(angle)*spec.bulletSpeed,
+    vy: Math.sin(angle)*spec.bulletSpeed,
+    life: 1.4, dmg: spec.dmg, owner, radius: 2
+  });
+  from.ammo--;
+  from.shotsFired++;
+  from.fireFlash = 0.05;
+  Sound.mg();
+}
+
+function updateProjectiles(dt){
+  const arr = M.projectiles;
+  for (let i=arr.length-1;i>=0;i--){
+    const s = arr[i];
+    s.life -= dt;
+    if (s.life <= 0){ arr.splice(i,1); continue; }
+    s.x += s.vx*dt;
+    s.y += s.vy*dt;
+
+    let hit = false;
+
+    /* obstacle collision */
+    for (const o of M.obstacles){
+      if (o.kind === 'circle'){
+        if (dist2(s.x,s.y,o.x,o.y) < (o.r+s.radius)*(o.r+s.radius)){ hit = true; break; }
+      } else {
+        if (s.x > o.x-o.w/2 && s.x < o.x+o.w/2 && s.y > o.y-o.h/2 && s.y < o.y+o.h/2){ hit = true; break; }
+      }
+    }
+
+    if (!hit){
+      if (s.owner === 'player'){
+        for (const e of M.enemies){
+          if (!e.alive) continue;
+          const rr = e.radius + s.radius + 4;
+          if (dist2(s.x,s.y,e.x,e.y) < rr*rr){
+            damageVehicle(e, s.dmg, s.x, s.y);
+            hit = true;
+            break;
+          }
+        }
+      } else {
+        const p = M.player;
+        if (p.alive){
+          const rr = p.radius + s.radius + 2;
+          if (dist2(s.x,s.y,p.x,p.y) < rr*rr){
+            damagePlayer(p, s.dmg, s.x, s.y);
+            hit = true;
+          }
+        }
+      }
+    }
+
+    /* world bounds */
+    if (s.x < 0 || s.y < 0 || s.x > M.size || s.y > M.size) hit = true;
+
+    if (hit){
+      if (s.kind === 'shell') explosion(s.x, s.y, 0.55);
+      else burst(s.x, s.y, 4, '#ffd27a', 90, 2, 0.25);
+      arr.splice(i,1);
+    }
+  }
+}
+
+/* ---------------------------- DAMAGE ---------------------------- */
+function damageVehicle(v, amount, hx, hy){
+  if (!v.alive) return;
+  v.hp -= amount;
+  v.hitFlash = 0.14;
+  burst(hx||v.x, hy||v.y, 8, '#ffcf7a', 180, 3, 0.35);
+  Sound.hit();
+
+  if (Math.random() < 0.45) v.engine = Math.max(0, v.engine - amount*0.9);
+  if (Math.random() < 0.45) v.tracks = Math.max(0, v.tracks - amount*0.9);
+  if (Math.random() < 0.30) v.turretHp = Math.max(0, v.turretHp - amount*0.8);
+
+  if (v.hp <= 0){
+    v.alive = false;
+    explosion(v.x, v.y, 1.25);
+    if (v.isEnemy){
+      M.kills++;
+      if (M.def.type !== 'aircraft'){
+        /* burning wreck */
+        for (let i=0;i<12;i++){
+          addParticle(v.x + rand(-18,18), v.y + rand(-18,18),
+            rand(-15,15), rand(-40,-8), rand(1.5,3.0), rand(14,30), 'rgba(50,46,40,0.5)', 'smoke');
+        }
+      }
+    }
+  }
+}
+
+function damagePlayer(p, amount, hx, hy){
+  if (!p.alive) return;
+  p.hp -= amount;
+  p.hitFlash = 0.18;
+  Game.flash = Math.min(1, Game.flash + 0.55);
+  cam.shake = Math.max(cam.shake, 6);
+  burst(hx||p.x, hy||p.y, 10, '#ffcf7a', 190, 3.5, 0.4);
+  Sound.hit();
+
+  if (Math.random() < 0.4) p.engine = Math.max(0, p.engine - amount*0.85);
+  if (Math.random() < 0.4) p.tracks = Math.max(0, p.tracks - amount*0.85);
+  if (Math.random() < 0.3) p.turretHp = Math.max(0, p.turretHp - amount*0.8);
+
+  if (p.hp <= 0){
+    p.alive = false;
+    explosion(p.x, p.y, 1.5);
+    setTimeout(()=>{ if (M && M.status === 'active') endMission(false, 'VEHICLE DESTROYED'); }, 700);
+  }
+}
+
+/* ---------------------------- TERRAIN QUERY ---------------------------- */
+function terrainAt(x,y){
+  if (!M) return 'ground';
+  for (const road of M.roads){
+    for (let i=0;i<road.length-1;i++){
+      if (segDist(x,y,road[i].x,road[i].y,road[i+1].x,road[i+1].y) < 22) return 'road';
+    }
+  }
+  for (const rp of M.roughPatches){
+    if (dist2(x,y,rp.x,rp.y) < rp.r*rp.r) return 'rough';
+  }
+  return 'ground';
+}
+
+/* ---------------------------- COLLISION ---------------------------- */
+function resolveObstacles(v){
+  for (const o of M.obstacles){
+    if (o.kind === 'circle'){
+      const d = dist(v.x,v.y,o.x,o.y);
+      const min = v.radius + o.r;
+      if (d < min && d > 0.001){
+        const nx = (v.x-o.x)/d, ny = (v.y-o.y)/d;
+        v.x = o.x + nx*min;
+        v.y = o.y + ny*min;
+        v.speed *= 0.55;
+      }
+    } else {
+      const nx = clamp(v.x, o.x-o.w/2, o.x+o.w/2);
+      const ny = clamp(v.y, o.y-o.h/2, o.y+o.h/2);
+      const d = dist(v.x,v.y,nx,ny);
+      if (d < v.radius){
+        if (d < 0.001){
+          v.x = o.x + o.w/2 + v.radius;
+        } else {
+          const k = (v.radius - d)/d;
+          v.x += (v.x-nx)*k;
+          v.y += (v.y-ny)*k;
+        }
+        v.speed *= 0.45;
+      }
+    }
+  }
+  /* world bounds */
+  v.x = clamp(v.x, v.radius+8, M.size - v.radius - 8);
+  v.y = clamp(v.y, v.radius+8, M.size - v.radius - 8);
+}
+
+/* ---------------------------- PLAYER UPDATE ---------------------------- */
+function updatePlayer(dt){
+  const p = M.player;
+  if (!p.alive) return;
+
+  if (p.kind === 'tank') updateTankPlayer(dt, p);
+  else if (p.kind === 'truck') updateTruckPlayer(dt, p);
+  else if (p.kind === 'aircraft') updateAircraftPlayer(dt, p);
+
+  if (p.fireFlash > 0) p.fireFlash -= dt;
+  if (p.hitFlash > 0) p.hitFlash -= dt;
+}
+
+function updateTankPlayer(dt, p){
+  const throttleIn = (Input.key('KeyW') ? 1 : 0) - (Input.key('KeyS') ? 1 : 0);
+  const steerIn    = (Input.key('KeyD') ? 1 : 0) - (Input.key('KeyA') ? 1 : 0);
+
+  const terr = terrainAt(p.x, p.y);
+  const terrMul = terr === 'road' ? 1.12 : (terr === 'rough' ? 0.66 : 1.0);
+  const engMul = 0.35 + 0.65 * (p.engine/100);
+  const trkMul = 0.45 + 0.55 * (p.tracks/100);
+
+  const maxSpd = p.spec.maxSpeed * terrMul * engMul * trkMul;
+  const target = throttleIn * maxSpd;
+  const accel = p.spec.accel * engMul;
+
+  if (p.speed < target) p.speed = Math.min(target, p.speed + accel*dt);
+  else                  p.speed = Math.max(target, p.speed - accel*1.7*dt);
+
+  /* track differential steering */
+  const speedFactor = 0.45 + 0.55 * Math.min(1, Math.abs(p.speed)/p.spec.maxSpeed);
+  p.angle += steerIn * p.spec.turnRate * speedFactor * trkMul * dt;
+
+  p.x += Math.cos(p.angle) * p.speed * dt;
+  p.y += Math.sin(p.angle) * p.speed * dt;
+
+  resolveObstacles(p);
+
+  /* turret aim toward mouse */
+  const mw = screenToWorld(Input.mouse.x, Input.mouse.y);
+  const targetAng = Math.atan2(mw.y - p.y, mw.x - p.x);
+  const turMul = 0.3 + 0.7 * (p.turretHp/100);
+  const maxTurn = p.spec.turretSpeed * turMul * dt;
+  const d = angDiff(p.turret, targetAng);
+  p.turret += clamp(d, -maxTurn, maxTurn);
+
+  /* reload */
+  if (p.reload > 0) p.reload -= dt;
+
+  /* fire */
+  if ((Input.mouse.down || Input.key('Space')) && p.reload <= 0 && p.ammo > 0){
+    if (Math.abs(angDiff(p.turret, targetAng)) < 0.09){
+      fireShell(p, p.turret, p.spec, 'player');
+    }
+  }
+
+  /* dust trail */
+  p.trailTimer -= dt;
+  if (Math.abs(p.speed) > 25 && p.trailTimer <= 0){
+    p.trailTimer = 0.09;
+    const back = p.angle + Math.PI;
+    addParticle(
+      p.x + Math.cos(back)*(p.radius*0.8) + rand(-8,8),
+      p.y + Math.sin(back)*(p.radius*0.8) + rand(-8,8),
+      rand(-8,8), rand(-8,8), rand(0.6,1.3), rand(6,13),
+      'rgba(120,112,92,0.35)', 'smoke'
+    );
+  }
+
+  Sound.engineSet(Math.abs(p.speed)/p.spec.maxSpeed, 0);
+}
+
+function updateTruckPlayer(dt, p){
+  const throttleIn = (Input.key('KeyW') ? 1 : 0) - (Input.key('KeyS') ? 1 : 0);
+  const steerIn    = (Input.key('KeyD') ? 1 : 0) - (Input.key('KeyA') ? 1 : 0);
+
+  const terr = terrainAt(p.x, p.y);
+  const terrMul = terr === 'road' ? 1.22 : (terr === 'rough' ? 0.68 : 1.0);
+  const engMul = 0.35 + 0.65 * (p.engine/100);
+
+  const maxSpd = p.spec.maxSpeed * terrMul * engMul;
+  const target = throttleIn * maxSpd;
+  const accel = p.spec.accel * engMul;
+
+  if (p.speed < target) p.speed = Math.min(target, p.speed + accel*dt);
+  else                  p.speed = Math.max(target, p.speed - accel*1.5*dt);
+
+  /* front wheel steering */
+  p.steer = lerp(p.steer, steerIn * p.spec.steerMax, dt*6);
+  const speedRatio = clamp(Math.abs(p.speed)/p.spec.maxSpeed, 0, 1);
+  p.angle += p.steer * p.spec.turnRate * speedRatio * Math.sign(p.speed || 1) * dt;
+
+  p.x += Math.cos(p.angle) * p.speed * dt;
+  p.y += Math.sin(p.angle) * p.speed * dt;
+
+  resolveObstacles(p);
+
+  p.trailTimer = (p.trailTimer||0) - dt;
+  if (Math.abs(p.speed) > 30 && p.trailTimer <= 0){
+    p.trailTimer = 0.12;
+    const back = p.angle + Math.PI;
+    addParticle(p.x + Math.cos(back)*p.radius, p.y + Math.sin(back)*p.radius,
+      rand(-6,6), rand(-6,6), rand(0.5,1.1), rand(5,11), 'rgba(140,130,110,0.3)', 'smoke');
+  }
+
+  Sound.engineSet(Math.abs(p.speed)/p.spec.maxSpeed, 0);
+}
+
+function updateAircraftPlayer(dt, p){
+  const throttleIn = (Input.key('KeyW') ? 1 : 0) - (Input.key('KeyS') ? 1 : 0);
+  p.throttle = clamp(p.throttle + throttleIn * dt * 0.85, 0, 1);
+
+  const fuelRatio = p.fuel > 0 ? 1 : 0;
+  const targetSpeed = p.throttle * p.spec.maxSpeed * (0.3 + 0.7*fuelRatio) * (0.5 + 0.5*(p.engine/100));
+  p.speed = lerp(p.speed, targetSpeed, 1 - Math.pow(0.15, dt));
+
+  /* banking */
+  const bankIn = (Input.key('KeyD') ? 1 : 0) - (Input.key('KeyA') ? 1 : 0);
+  p.bank = lerp(p.bank, bankIn, dt*3.5);
+  const spdRatio = clamp(p.speed / p.spec.maxSpeed, 0.15, 1);
+  p.angle += p.bank * p.spec.turnRate * spdRatio * dt;
+
+  /* pitch / altitude */
+  const pitchIn = (Input.key('ArrowUp') || Input.key('ShiftLeft') ? 1 : 0)
+                - (Input.key('ArrowDown') || Input.key('ControlLeft') ? 1 : 0);
+  p.pitch = lerp(p.pitch, pitchIn, dt*3);
+  p.alt += p.pitch * 330 * dt;
+  p.alt = clamp(p.alt, 0, 2600);
+
+  /* fuel */
+  p.fuel = Math.max(0, p.fuel - (0.35 + p.throttle*1.35) * dt);
+
+  /* position */
+  p.x += Math.cos(p.angle) * p.speed * dt;
+  p.y += Math.sin(p.angle) * p.speed * dt;
+
+  /* soft world bounds */
+  if (p.x < 40) p.x = 40;
+  if (p.y < 40) p.y = 40;
+  if (p.x > M.size-40) p.x = M.size-40;
+  if (p.y > M.size-40) p.y = M.size-40;
+
+  /* crash check */
+  if (p.alt <= 0){
+    p.alive = false;
+    explosion(p.x, p.y, 1.6);
+    setTimeout(()=>{ if (M && M.status === 'active') endMission(false, 'AIRCRAFT CRASHED'); }, 600);
+  }
+  if (p.fuel <= 0 && p.speed < 60 && p.alt > 0){
+    p.alt -= 120*dt;
+  }
+
+  /* guns */
+  if (p.gunTimer > 0) p.gunTimer -= dt;
+  if ((Input.mouse.down || Input.key('Space')) && p.gunTimer <= 0 && p.ammo > 0){
+    fireBullet(p, p.angle + rand(-0.02,0.02), p.spec, 'player');
+    p.gunTimer = p.spec.gunRate;
+  }
+
+  Sound.engineSet(p.throttle * (0.6 + spdRatio*0.4), p.alt);
+}
+
+/* ---------------------------- ENEMY AI ---------------------------- */
+function updateEnemies(dt){
+  const p = M.player;
+
+  for (const e of M.enemies){
+    if (!e.alive) continue;
+    if (e.hitFlash > 0) e.hitFlash -= dt;
+    if (e.fireFlash > 0) e.fireFlash -= dt;
+
+    if (e.kind === 'aircraft') updateEnemyAircraft(dt, e, p);
+    else updateEnemyTank(dt, e, p);
+  }
+
+  /* wave spawning for survive missions */
+  if (M.def.waves && M.status === 'active'){
+    M.waveTimer -= dt;
+    const alive = M.enemies.filter(e => e.alive).length;
+    if (M.waveTimer <= 0 && alive < 4 && M.elapsed < M.def.objectives[0].need){
+      M.waveTimer = 16;
+      spawnWaveEnemy();
+    }
+  }
+}
+
+function spawnWaveEnemy(){
+  const S = M.size;
+  let x, y, tries = 0;
+  do{
+    const a = Math.random()*TAU;
+    const r = 900 + Math.random()*400;
+    x = clamp(M.player.x + Math.cos(a)*r, 150, S-150);
+    y = clamp(M.player.y + Math.sin(a)*r, 150, S-150);
+    tries++;
+  } while (tries < 20 && dist(x,y,M.player.x,M.player.y) < 700);
+
+  const e = makeTank(x, y, rand(0,TAU), ENEMY_TANK_SPECS.heavy, false, true);
+  e.isEnemy = true;
+  M.enemies.push(e);
+  showMessage('ENEMY REINFORCEMENTS INBOUND', 2.0);
+}
+
+function updateEnemyTank(dt, e, p){
+  const ai = e.ai;
+  const d = dist(e.x, e.y, p.x, p.y);
+  const targetAngle = Math.atan2(p.y - e.y, p.x - e.x);
+
+  /* state machine */
+  if (ai.state === 'idle'){
+    if (d < 900 && p.alive) ai.state = 'pursue';
+    e.speed = lerp(e.speed, 0, dt*2);
+    e.turret = lerpAngle(e.turret, targetAngle, dt*0.5);
+  }
+  else if (ai.state === 'pursue'){
+    if (!p.alive || d > 1200) ai.state = 'idle';
+    else if (d < 420) ai.state = 'attack';
+    else {
+      /* drive toward player */
+      const desired = targetAngle;
+      e.angle = lerpAngle(e.angle, desired, dt*1.4);
+      const maxSpd = e.spec.maxSpeed * 0.85;
+      e.speed = lerp(e.speed, maxSpd, dt*1.2);
+      e.turret = lerpAngle(e.turret, targetAngle, dt*1.0);
+    }
+  }
+  else if (ai.state === 'attack'){
+    if (!p.alive) { ai.state = 'idle'; }
+    else if (d > 560) ai.state = 'pursue';
+    else {
+      /* hold and shoot, small strafe */
+      e.speed = lerp(e.speed, 0, dt*3);
+      ai.retarget -= dt;
+      if (ai.retarget <= 0){
+        ai.retarget = rand(1.2, 2.2);
+        ai.aimErr = rand(-0.14, 0.14);
+      }
+      const aim = targetAngle + (ai.aimErr || 0);
+      const maxTurn = e.spec.turretSpeed * dt;
+      const diff = angDiff(e.turret, aim);
+      e.turret += clamp(diff, -maxTurn, maxTurn);
+    }
+  }
+
+  /* movement integration */
+  e.x += Math.cos(e.angle) * e.speed * dt;
+  e.y += Math.sin(e.angle) * e.speed * dt;
+  resolveObstacles(e);
+
+  /* reload + fire */
+  if (e.reload > 0) e.reload -= dt;
+  if (e.reload <= 0 && p.alive && d < 820 && Math.abs(angDiff(e.turret, targetAngle)) < 0.10){
+    const spread = rand(-0.045, 0.045);
+    fireShell(e, e.turret + spread, e.spec, 'enemy');
+    e.reload = e.spec.reloadTime * rand(0.95, 1.35);
+  }
+
+  /* dust */
+  e.trailTimer = (e.trailTimer||0) - dt;
+  if (Math.abs(e.speed) > 20 && e.trailTimer <= 0){
+    e.trailTimer = 0.14;
+    const back = e.angle + Math.PI;
+    addParticle(e.x + Math.cos(back)*e.radius, e.y + Math.sin(back)*e.radius,
+      rand(-6,6), rand(-6,6), rand(0.5,1.1), rand(6,12), 'rgba(120,112,92,0.3)', 'smoke');
+  }
+}
+
+function updateEnemyAircraft(dt, e, p){
+  if (!p.alive || p.kind !== 'aircraft'){
+    e.angle += 0.4*dt;
+    e.x += Math.cos(e.angle)*e.speed*dt;
+    e.y += Math.sin(e.angle)*e.speed*dt;
+    return;
+  }
+
+  const d = dist(e.x, e.y, p.x, p.y);
+  const targetAngle = Math.atan2(p.y - e.y, p.x - e.x);
+  const diff = angDiff(e.angle, targetAngle);
+
+  e.angle += clamp(diff, -e.spec.turnRate*dt, e.spec.turnRate*dt);
+
+  const desiredSpeed = d > 500 ? e.spec.maxSpeed*0.9 : e.spec.maxSpeed*0.72;
+  e.speed = lerp(e.speed, desiredSpeed, dt*0.8);
+
+  /* altitude matching */
+  const altDiff = p.alt - e.alt;
+  e.alt = clamp(e.alt + clamp(altDiff, -180*dt, 180*dt), 100, 2600);
+
+  e.x += Math.cos(e.angle)*e.speed*dt;
+  e.y += Math.sin(e.angle)*e.speed*dt;
+  e.x = clamp(e.x, 60, M.size-60);
+  e.y = clamp(e.y, 60, M.size-60);
+
+  /* fire when aligned */
+  if (e.gunTimer > 0) e.gunTimer -= dt;
+  if (d < 700 && Math.abs(diff) < 0.16 && e.gunTimer <= 0){
+    fireBullet(e, e.angle + rand(-0.03,0.03), e.spec, 'enemy');
+    e.gunTimer = 0.13;
+  }
+}
+
+/* ---------------------------- CAMERA ---------------------------- */
+function updateCamera(dt){
+  const p = M.player;
+  const lead = (p.kind === 'aircraft') ? 0.28 : 0.16;
+  const tx = p.x + Math.cos(p.angle) * p.speed * lead;
+  const ty = p.y + Math.sin(p.angle) * p.speed * lead;
+  const k = 1 - Math.pow(0.0015, dt);
+  cam.x = lerp(cam.x, tx, k);
+  cam.y = lerp(cam.y, ty, k);
+
+  if (cam.shake > 0){
+    cam.shake = Math.max(0, cam.shake - dt*28);
+  }
+}
+
+function screenToWorld(sx, sy){
+  return {
+    x: (sx - VW/2) / cam.zoom + cam.x,
+    y: (sy - VH/2) / cam.zoom + cam.y
+  };
+}
+
+/* ---------------------------- OBJECTIVES / END ---------------------------- */
+function checkObjectives(dt){
+  let allDone = true;
+
+  for (const o of M.objectives){
+    if (o.type === 'destroy'){
+      o.got = M.kills;
+      if (o.got < o.need) allDone = false;
+    }
+    else if (o.type === 'reach' || o.type === 'deliver'){
+      const p = M.player;
+      if (!o.got && dist(p.x, p.y, o.x, o.y) < o.r) o.got = 1;
+      if (!o.got) allDone = false;
+    }
+    else if (o.type === 'survive'){
+      o.got = M.elapsed;
+      if (M.elapsed < o.need) allDone = false;
+    }
+    else if (o.type === 'waypoints'){
+      const p = M.player;
+      let n = 0;
+      for (const wp of o.points){
+        if (!wp.done && dist(p.x,p.y,wp.x,wp.y) < wp.r){
+          wp.done = true;
+          showMessage('WAYPOINT REACHED', 1.4);
+          Sound.tone(760, 0.1, 0.08, 'square');
+        }
+        if (wp.done) n++;
+      }
+      o.got = n;
+      if (n < o.points.length) allDone = false;
+    }
+    else if (o.type === 'training'){
+      allDone = false;
+    }
+  }
+
+  if (allDone && M.objectives.length > 0 && M.status === 'active'){
+    endMission(true, 'ALL OBJECTIVES COMPLETE');
+  }
+}
+
+function endMission(success, reason){
+  if (!M || M.status !== 'active') return;
+  M.status = success ? 'success' : 'failed';
+  Sound.engineStop();
+
+  /* rating */
+  let rank = '—';
+  if (success){
+    const hull = clamp(M.player.hp / M.player.maxHp, 0, 1);
+    const timeRatio = M.def.timeLimit ? (M.elapsed / M.def.timeLimit) : 0.5;
+    if (hull > 0.85 && timeRatio < 0.55) rank = 'S';
+    else if (hull > 0.65) rank = 'A';
+    else if (hull > 0.40) rank = 'B';
+    else rank = 'C';
+
+    if (!Game.isTraining){
+      Save.setRating(M.index, rank);
+      Save.unlock(M.index + 2); /* unlock next mission (1-based) */
+    }
+  }
+
+  showResults(success, reason, rank);
+}
+
+/* ---------------------------- UPDATE LOOP ---------------------------- */
+function update(dt){
+  if (!M || M.status !== 'active') return;
+
+  M.elapsed += dt;
+
+  if (M.timer > 0){
+    M.timer -= dt;
+    if (M.timer <= 0){
+      endMission(false, 'TIME EXPIRED');
+      return;
+    }
+  }
+
+  updatePlayer(dt);
+  updateEnemies(dt);
+  updateProjectiles(dt);
+  updateParticles(dt);
+  updateCamera(dt);
+  checkObjectives(dt);
+
+  if (Game.flash > 0) Game.flash = Math.max(0, Game.flash - dt*2.2);
+
+  updateHUD();
+}
+
+/* ---------------------------- RENDERING ---------------------------- */
+let menuT = 0;
+
+function render(){
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  ctx.clearRect(0,0,VW,VH);
+
+  if (!M || (Game.state !== 'playing' && Game.state !== 'paused' && Game.state !== 'results')){
+    drawMenuBackdrop();
+    return;
+  }
+
+  const z = cam.zoom;
+  const shakeX = cam.shake > 0 ? rand(-cam.shake, cam.shake) : 0;
+  const shakeY = cam.shake > 0 ? rand(-cam.shake, cam.shake) : 0;
+
+  ctx.save();
+  ctx.translate(VW/2 + shakeX, VH/2 + shakeY);
+  ctx.scale(z, z);
+  ctx.translate(-cam.x, -cam.y);
+
+  /* ---- terrain ---- */
+  ctx.drawImage(M.map.terrain, 0, 0);
+
+  /* ---- ground decals (craters already baked) ---- */
+
+  /* ---- objective markers on the ground ---- */
+  drawObjectiveMarkers(ctx);
+
+  /* ---- shadows ---- */
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,0.32)';
+  const shadowOffset = 9;
+  for (const e of M.enemies){
+    if (!e.alive) continue;
+    drawEntityShadow(ctx, e, shadowOffset);
+  }
+  if (M.player.alive) drawEntityShadow(ctx, M.player, shadowOffset);
+  ctx.restore();
+
+  /* ---- entities ---- */
+  for (const e of M.enemies){
+    if (!e.alive) continue;
+    if (e.kind === 'aircraft') drawAircraft(ctx, e, false);
+    else drawTank(ctx, e, false);
+  }
+  if (M.player.alive){
+    if (M.player.kind === 'aircraft') drawAircraft(ctx, M.player, true);
+    else if (M.player.kind === 'truck') drawTruck(ctx, M.player);
+    else drawTank(ctx, M.player, true);
+  }
+
+  /* ---- projectiles ---- */
+  drawProjectiles(ctx);
+
+  /* ---- particles ---- */
+  drawParticles(ctx);
+
+  ctx.restore();
+
+  /* ---- screen effects ---- */
+  if (Game.flash > 0){
+    ctx.fillStyle = 'rgba(150,30,20,' + (Game.flash*0.34) + ')';
+    ctx.fillRect(0,0,VW,VH);
+  }
+
+  /* ---- vignette-ish darkness at edges (drawn via canvas) ---- */
+  const grad = ctx.createRadialGradient(VW/2, VH/2, Math.min(VW,VH)*0.32, VW/2, VH/2, Math.max(VW,VH)*0.78);
+  grad.addColorStop(0, 'rgba(0,0,0,0)');
+  grad.addColorStop(1, 'rgba(0,0,0,0.55)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0,0,VW,VH);
+
+  /* ---- crosshair ---- */
+  if (Game.state === 'playing') drawCrosshair();
+}
+
+function drawMenuBackdrop(){
+  menuT += 0.005;
+  const g = ctx.createLinearGradient(0,0,0,VH);
+  g.addColorStop(0, '#0b0d08');
+  g.addColorStop(0.5, '#161a10');
+  g.addColorStop(1, '#080a06');
+  ctx.fillStyle = g;
+  ctx.fillRect(0,0,VW,VH);
+
+  for (let i=0;i<7;i++){
+    const x = (Math.sin(menuT + i*1.7) * 0.5 + 0.5) * VW;
+    const y = (Math.cos(menuT*0.8 + i*2.3) * 0.5 + 0.5) * VH;
+    const r = 160 + i*70;
+    const rg = ctx.createRadialGradient(x,y,0,x,y,r);
+    rg.addColorStop(0, 'rgba(90,107,61,0.055)');
+    rg.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = rg;
+    ctx.beginPath();
+    ctx.arc(x,y,r,0,TAU);
+    ctx.fill();
+  }
+}
+
+function drawObjectiveMarkers(g){
+  const pulse = 0.55 + 0.45*Math.sin(M.elapsed*2.6);
+
+  for (const o of M.objectives){
+    if (o.type === 'reach' || o.type === 'deliver'){
+      if (o.got) continue;
+      g.save();
+      g.strokeStyle = 'rgba(169,196,122,' + (0.45 + pulse*0.45) + ')';
+      g.lineWidth = 4;
+      g.setLineDash([16,12]);
+      g.beginPath(); g.arc(o.x, o.y, o.r, 0, TAU); g.stroke();
+      g.setLineDash([]);
+      g.fillStyle = 'rgba(169,196,122,0.08)';
+      g.beginPath(); g.arc(o.x, o.y, o.r, 0, TAU); g.fill();
+      /* beacon */
+      g.fillStyle = 'rgba(201,185,138,' + (0.35 + pulse*0.4) + ')';
+      g.beginPath();
+      g.moveTo(o.x, o.y - 46);
+      g.lineTo(o.x - 12, o.y - 24);
+      g.lineTo(o.x + 12, o.y - 24);
+      g.closePath();
+      g.fill();
+      g.restore();
+    }
+    else if (o.type === 'waypoints'){
+      for (const wp of o.points){
+        g.save();
+        const done = wp.done;
+        g.strokeStyle = done ? 'rgba(120,150,90,0.28)' : 'rgba(201,185,138,' + (0.4+pulse*0.5) + ')';
+        g.lineWidth = done ? 2 : 4;
+        g.beginPath(); g.arc(wp.x, wp.y, wp.r, 0, TAU); g.stroke();
+        if (!done){
+          g.fillStyle = 'rgba(201,185,138,0.07)';
+          g.beginPath(); g.arc(wp.x, wp.y, wp.r, 0, TAU); g.fill();
+          g.fillStyle = 'rgba(201,185,138,' + (0.3+pulse*0.4) + ')';
+          g.beginPath(); g.arc(wp.x, wp.y, 8, 0, TAU); g.fill();
+        }
+        g.restore();
+      }
+    }
+  }
+}
+
+function drawEntityShadow(g, v, off){
+  if (v.kind === 'aircraft'){
+    const k = 1 + v.alt/2400;
+    g.globalAlpha = 0.22;
+    g.beginPath();
+    g.ellipse(v.x + off + v.alt*0.10, v.y + off + v.alt*0.06, v.radius*1.1*k, v.radius*0.7*k, v.angle, 0, TAU);
+    g.fill();
+    g.globalAlpha = 1;
+    return;
+  }
+  g.globalAlpha = 0.34;
+  g.beginPath();
+  g.ellipse(v.x + off, v.y + off, v.radius*1.05, v.radius*0.85, v.angle, 0, TAU);
+  g.fill();
+  g.globalAlpha = 1;
+}
+
+function drawTank(g, t, isPlayer){
+  const s = t.spec;
+  const L = s.len, W = s.wid;
+
+  g.save();
+  g.translate(t.x, t.y);
+
+  /* ---- hull ---- */
+  g.save();
+  g.rotate(t.angle);
+
+  /* tracks */
+  g.fillStyle = '#1e2118';
+  rrect(g, -L/2, -W/2 - 5, L, 10, 3); g.fill();
+  rrect(g, -L/2,  W/2 - 5, L, 10, 3); g.fill();
+
+  /* track detail */
+  g.strokeStyle = 'rgba(0,0,0,.45)';
+  g.lineWidth = 1.5;
+  for (let i=-L/2+5; i<L/2; i+=8){
+    g.beginPath(); g.moveTo(i, -W/2-5); g.lineTo(i, -W/2+5); g.stroke();
+    g.beginPath(); g.moveTo(i,  W/2-5); g.lineTo(i,  W/2+5); g.stroke();
+  }
+
+  /* hull body */
+  let hullCol = isPlayer ? '#5c6b3a' : '#5a4a36';
+  if (t.hitFlash > 0) hullCol = '#b06a3a';
+  g.fillStyle = hullCol;
+  rrect(g, -L/2 + 2, -W/2, L - 4, W, 5);
+  g.fill();
+
+  /* hull highlight / shading */
+  g.fillStyle = 'rgba(255,255,255,0.07)';
+  rrect(g, -L/2+4, -W/2+2, L-8, W*0.34, 4); g.fill();
+  g.fillStyle = 'rgba(0,0,0,0.20)';
+  rrect(g, -L/2+4, W/2 - W*0.3, L-8, W*0.26, 4); g.fill();
+
+  /* front plate */
+  g.fillStyle = 'rgba(0,0,0,0.28)';
+  g.fillRect(L/2 - 9, -W/2+2, 7, W-4);
+
+  /* stowage */
+  g.fillStyle = 'rgba(0,0,0,0.18)';
+  g.fillRect(-L/2 + 6, -W/2 + 4, 10, 6);
+  g.fillRect(-L/2 + 6,  W/2 - 10, 10, 6);
+
+  g.restore();
+
+  /* ---- turret ---- */
+  g.save();
+  g.rotate(t.turret);
+
+  /* barrel */
+  const barrelLen = L * 0.78;
+  g.fillStyle = '#2f3624';
+  g.fillRect(6, -2.8, barrelLen, 5.6);
+  g.fillStyle = 'rgba(255,255,255,0.10)';
+  g.fillRect(6, -2.8, barrelLen, 1.6);
+
+  /* mantlet */
+  g.fillStyle = '#46512c';
+  rrect(g, 2, -7, 12, 14, 3); g.fill();
+
+  /* turret body */
+  let turCol = isPlayer ? '#4d5a30' : '#4a3d2b';
+  if (t.hitFlash > 0) turCol = '#a05e34';
+  g.fillStyle = turCol;
+  g.beginPath();
+  g.arc(0, 0, W*0.42, 0, TAU);
+  g.fill();
+
+  /* turret shading */
+  g.fillStyle = 'rgba(255,255,255,0.09)';
+  g.beginPath();
+  g.arc(-2, -3, W*0.30, 0, TAU);
+  g.fill();
+
+  /* hatch */
+  g.fillStyle = 'rgba(0,0,0,0.32)';
+  g.beginPath();
+  g.arc(-4, 0, W*0.16, 0, TAU);
+  g.fill();
+
+  /* muzzle flash */
+  if (t.fireFlash > 0){
+    const f = t.fireFlash / 0.09;
+    g.globalAlpha = f;
+    const fg = g.createRadialGradient(barrelLen+8, 0, 0, barrelLen+8, 0, 30);
+    fg.addColorStop(0, 'rgba(255,230,150,0.95)');
+    fg.addColorStop(0.5, 'rgba(255,160,60,0.55)');
+    fg.addColorStop(1, 'rgba(255,120,40,0)');
+    g.fillStyle = fg;
+    g.beginPath();
+    g.arc(barrelLen+8, 0, 30, 0, TAU);
+    g.fill();
+    g.globalAlpha = 1;
+  }
+
+  g.restore();
+  g.restore();
+
+  /* enemy marker */
+  if (t.isEnemy && t.alive){
+    g.save();
+    g.translate(t.x, t.y - s.radius - 20);
+    g.fillStyle = 'rgba(200,70,45,0.9)';
+    g.beginPath();
+    g.moveTo(0, 0); g.lineTo(-7, -10); g.lineTo(7, -10);
+    g.closePath(); g.fill();
+    g.restore();
+
+    /* health pip */
+    const hp = clamp(t.hp/t.maxHp, 0, 1);
+    g.fillStyle = 'rgba(0,0,0,0.6)';
+    g.fillRect(t.x - 20, t.y - s.radius - 36, 40, 4);
+    g.fillStyle = hp > 0.5 ? '#c9553c' : '#e0a24a';
+    g.fillRect(t.x - 20, t.y - s.radius - 36, 40*hp, 4);
+  }
+}
+
+function drawTruck(g, t){
+  const s = t.spec;
+  const L = s.len, W = s.wid;
+
+  g.save();
+  g.translate(t.x, t.y);
+  g.rotate(t.angle);
+
+  /* wheels */
+  g.fillStyle = '#1c1e18';
+  g.fillRect(-L/2 + 4, -W/2 - 4, 12, 8);
+  g.fillRect(-L/2 + 4,  W/2 - 4, 12, 8);
+  g.fillRect( L/2 - 16, -W/2 - 4, 12, 8);
+  g.fillRect( L/2 - 16,  W/2 - 4, 12, 8);
+
+  /* cabin */
+  let col = '#5b5a3e';
+  if (t.hitFlash > 0) col = '#b06a3a';
+  g.fillStyle = col;
+  rrect(g, -L/2, -W/2, L*0.36, W, 4); g.fill();
+
+  /* cargo bed */
+  g.fillStyle = '#4a4a33';
+  rrect(g, -L/2 + L*0.38, -W/2, L*0.60, W, 3); g.fill();
+
+  /* canvas cover lines */
+  g.strokeStyle = 'rgba(0,0,0,0.35)';
+  g.lineWidth = 1.5;
+  for (let i=1;i<5;i++){
+    const x = -L/2 + L*0.38 + (L*0.60)*i/5;
+    g.beginPath(); g.moveTo(x, -W/2+2); g.lineTo(x, W/2-2); g.stroke();
+  }
+
+  /* windshield */
+  g.fillStyle = 'rgba(140,170,180,0.45)';
+  g.fillRect(L/2 - L*0.20, -W/2 + 4, 6, W - 8);
+
+  /* highlight */
+  g.fillStyle = 'rgba(255,255,255,0.07)';
+  g.fillRect(-L/2+2, -W/2+2, L-4, 5);
+
+  g.restore();
+}
+
+function drawAircraft(g, a, isPlayer){
+  const R = a.radius;
+  const scale = 1 + a.alt/5200;
+
+  g.save();
+  g.translate(a.x, a.y);
+  g.rotate(a.angle);
+  g.scale(scale, scale);
+
+  let col = isPlayer ? '#5f6f42' : '#6b4436';
+  if (a.hitFlash > 0) col = '#c07a4a';
+
+  /* wings */
+  g.fillStyle = col;
+  g.beginPath();
+  g.moveTo(0, 0);
+  g.lineTo(-R*0.35, -R*1.5);
+  g.lineTo(-R*0.85, -R*1.5);
+  g.lineTo(-R*0.55, 0);
+  g.lineTo(-R*0.85,  R*1.5);
+  g.lineTo(-R*0.35,  R*1.5);
+  g.closePath();
+  g.fill();
+
+  /* fuselage */
+  g.fillStyle = col;
+  g.beginPath();
+  g.ellipse(0, 0, R*1.05, R*0.30, 0, 0, TAU);
+  g.fill();
+
+  /* tailplane */
+  g.fillStyle = 'rgba(0,0,0,0.35)';
+  g.beginPath();
+  g.moveTo(-R*0.85, 0);
+  g.lineTo(-R*1.15, -R*0.55);
+  g.lineTo(-R*1.35, -R*0.55);
+  g.lineTo(-R*1.15, 0);
+  g.lineTo(-R*1.35,  R*0.55);
+  g.lineTo(-R*1.15,  R*0.55);
+  g.closePath();
+  g.fill();
+
+  /* cockpit */
+  g.fillStyle = 'rgba(150,190,200,0.55)';
+  g.beginPath();
+  g.ellipse(R*0.18, 0, R*0.26, R*0.16, 0, 0, TAU);
+  g.fill();
+
+  /* propeller / muzzle */
+  if (a.fireFlash > 0){
+    g.fillStyle = 'rgba(255,225,150,' + (a.fireFlash/0.05) + ')';
+    g.beginPath();
+    g.arc(R*1.05, 0, R*0.3, 0, TAU);
+    g.fill();
+  }
+
+  /* engine glow */
+  g.fillStyle = 'rgba(255,180,80,0.25)';
+  g.beginPath();
+  g.arc(-R*0.6, 0, R*0.14, 0, TAU);
+  g.fill();
+
+  g.restore();
+
+  /* contrail */
+  if (a.speed > 100 && Math.random() < 0.55){
+    const back = a.angle + Math.PI;
+    addParticle(
+      a.x + Math.cos(back)*R*1.1,
+      a.y + Math.sin(back)*R*1.1,
+      rand(-5,5), rand(-5,5), rand(0.7,1.5), rand(4,10),
+      'rgba(210,215,205,0.22)', 'smoke'
+    );
+  }
+
+  /* enemy marker */
+  if (a.isEnemy){
+    g.save();
+    g.translate(a.x, a.y - R - 22);
+    g.fillStyle = 'rgba(200,70,45,0.9)';
+    g.beginPath();
+    g.moveTo(0,0); g.lineTo(-7,-10); g.lineTo(7,-10);
+    g.closePath(); g.fill();
+    g.restore();
+  }
+}
+
+function drawProjectiles(g){
+  for (const s of M.projectiles){
+    if (s.kind === 'shell'){
+      const len = 16;
+      const a = Math.atan2(s.vy, s.vx);
+      g.save();
+      g.translate(s.x, s.y);
+      g.rotate(a);
+      g.fillStyle = 'rgba(255,220,140,0.95)';
+      g.fillRect(-len, -1.6, len, 3.2);
+      g.fillStyle = 'rgba(255,150,60,0.5)';
+      g.fillRect(-len*1.8, -2.4, len, 4.8);
+      g.restore();
+    } else {
+      g.fillStyle = 'rgba(255,235,170,0.95)';
+      g.beginPath();
+      g.arc(s.x, s.y, 2.2, 0, TAU);
+      g.fill();
+      g.strokeStyle = 'rgba(255,200,100,0.4)';
+      g.lineWidth = 1.5;
+      g.beginPath();
+      g.moveTo(s.x, s.y);
+      g.lineTo(s.x - s.vx*0.012, s.y - s.vy*0.012);
+      g.stroke();
+    }
+  }
+}
+
+function drawParticles(g){
+  for (const p of M.particles){
+    const t = clamp(p.life / p.maxLife, 0, 1);
+    if (p.type === 'smoke'){
+      g.globalAlpha = t * 0.75;
+      g.fillStyle = p.color;
+      g.beginPath();
+      g.arc(p.x, p.y, p.size * (1.4 - t*0.5), 0, TAU);
+      g.fill();
+    } else {
+      g.globalAlpha = t;
+      g.fillStyle = p.color;
+      g.beginPath();
+      g.arc(p.x, p.y, p.size * t, 0, TAU);
+      g.fill();
+    }
+  }
+  g.globalAlpha = 1;
+}
+
+function drawCrosshair(){
+  const x = Input.mouse.x, y = Input.mouse.y;
+  const p = M.player;
+  const ready = (p.kind === 'tank') ? p.reload <= 0 : true;
+
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.strokeStyle = ready ? 'rgba(201,185,138,0.9)' : 'rgba(180,90,60,0.75)';
+  ctx.lineWidth = 1.6;
+
+  const r = 13, gap = 5;
+  ctx.beginPath();
+  ctx.moveTo(-r,0); ctx.lineTo(-gap,0);
+  ctx.moveTo(gap,0); ctx.lineTo(r,0);
+  ctx.moveTo(0,-r); ctx.lineTo(0,-gap);
+  ctx.moveTo(0,gap); ctx.lineTo(0,r);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(0,0, 2, 0, TAU);
+  ctx.fillStyle = ready ? 'rgba(201,185,138,0.9)' : 'rgba(180,90,60,0.8)';
+  ctx.fill();
+
+  /* outer ring */
+  ctx.globalAlpha = 0.35;
+  ctx.beginPath();
+  ctx.arc(0,0, 20, 0, TAU);
+  ctx.stroke();
+  ctx.restore();
+}
+
+/* ---------------------------- MAIN LOOP ---------------------------- */
+let lastTs = 0;
+let accumulator = 0;
+const STEP = 1/60;
+
+function loop(ts){
+  requestAnimationFrame(loop);
+  if (!lastTs) lastTs = ts;
+  let dt = (ts - lastTs) / 1000;
+  lastTs = ts;
+  if (dt > 0.1) dt = 0.1;
+
+  if (Game.state === 'playing' && M && M.status === 'active'){
+    accumulator += dt;
+    let guard = 0;
+    while (accumulator >= STEP && guard++ < 6){
+      update(STEP);
+      accumulator -= STEP;
+    }
+  }
+
+  render();
+}
+requestAnimationFrame(loop);
+
+/* ---------------------------- SCREEN MANAGEMENT ---------------------------- */
+const SCREENS = {
+  menu: document.getElementById('screenMenu'),
+  missions: document.getElementById('screenMissions'),
+  vehicles: document.getElementById('screenVehicles'),
+  settings: document.getElementById('screenSettings'),
+  results: document.getElementById('screenResults'),
+  pause: document.getElementById('screenPause')
+};
+
+function hideAllScreens(){
+  for (const k in SCREENS) SCREENS[k].classList.add('hidden');
+  document.getElementById('hud').classList.remove('on');
+  document.getElementById('vignette').classList.remove('on');
+}
+
+function showScreen(name){
+  hideAllScreens();
+  if (SCREENS[name]) SCREENS[name].classList.remove('hidden');
+}
+
+/* ---------------------------- MISSION LIST UI ---------------------------- */
+function buildMissionList(){
+  const wrap = document.getElementById('missionList');
+  wrap.innerHTML = '';
+
+  CHAPTERS.forEach(ch=>{
+    const head = document.createElement('div');
+    head.className = 'chapter';
+    head.textContent = ch.label;
+    wrap.appendChild(head);
+
+    for (let i=ch.from; i<=ch.to; i++){
+      const def = MISSION_DEFS[i];
+      if (!def) continue;
+      const unlocked = (i+1) <= Save.data.unlocked;
+      const rating = Save.rating(i);
+
+      const row = document.createElement('div');
+      row.className = 'mission-row' + (unlocked ? '' : ' locked');
+
+      const typeLabel = def.type === 'tank' ? 'ARMOURED'
+                      : def.type === 'aircraft' ? 'AIR OPERATION'
+                      : 'TRANSPORT';
+
+      row.innerHTML = `
+        <div class="m-index">${String(i+1).padStart(2,'0')}</div>
+        <div class="m-body">
+          <div class="m-name">${def.name.toUpperCase()}</div>
+          <div class="m-brief">${def.brief}</div>
+          <div class="m-type">${typeLabel} · ${BIOMES[def.biome].name} · ${def.timeLimit ? fmtTime(def.timeLimit) : 'NO LIMIT'}</div>
+        </div>
+        <div class="m-rating ${rating === 'C' ? 'failed' : ''}">${unlocked ? (rating || '—') : '🔒'}</div>
+      `;
+
+      if (unlocked){
+        row.addEventListener('click', ()=>{
+          Sound.init(); Sound.resume(); Sound.ui();
+          startMission(def, i, false);
+        });
+      }
+      wrap.appendChild(row);
+    }
+  });
+
+  /* training entry */
+  const head = document.createElement('div');
+  head.className = 'chapter';
+  head.textContent = 'TRAINING GROUND';
+  wrap.appendChild(head);
+
+  const row = document.createElement('div');
+  row.className = 'mission-row';
+  row.innerHTML = `
+    <div class="m-index">★</div>
+    <div class="m-body">
+      <div class="m-name">TRAINING EXERCISE</div>
+      <div class="m-brief">${TRAINING_DEF.brief}</div>
+      <div class="m-type">ARMOURED · SUMMER · NO LIMIT</div>
+    </div>
+    <div class="m-rating">—</div>
+  `;
+  row.addEventListener('click', ()=>{
+    Sound.init(); Sound.resume(); Sound.ui();
+    startMission(TRAINING_DEF, -1, true);
+  });
+  wrap.appendChild(row);
+}
+
+/* ---------------------------- VEHICLE COLLECTION UI ---------------------------- */
+const VEHICLE_INFO = [
+  { name:'M4 SHERMAN', cls:'MEDIUM TANK', type:'tank', spec:TANK_SPECS.sherman,
+    text:'Balanced mobility, protection and firepower. The workhorse of the armoured division.' },
+  { name:'CHURCHILL', cls:'INFANTRY TANK', type:'tank', spec:TANK_SPECS.churchill,
+    text:'Heavy protection and slow movement. Designed for assaulting fortified positions.' },
+  { name:'CROMWELL', cls:'CRUISER TANK', type:'tank', spec:TANK_SPECS.cromwell,
+    text:'Higher mobility and responsive handling. Built for exploitation and pursuit.' },
+  { name:'SPITFIRE', cls:'FIGHTER', type:'air', spec:AIR_SPECS.fighter,
+    text:'Responsive handling and superb manoeuvrability. The standard interceptor.' },
+  { name:'HURRICANE', cls:'FIGHTER', type:'air', spec:AIR_SPECS.fighter2,
+    text:'Stable aircraft with a distinct handling profile. Rugged and forgiving.' },
+  { name:'MUSTANG', cls:'FIGHTER', type:'air', spec:AIR_SPECS.fighter3,
+    text:'High-speed aircraft reserved for later campaign operations.' },
+  { name:'CARGO TRUCK', cls:'TRANSPORT', type:'land', spec:TRUCK_SPECS.truck,
+    text:'Supply and troop transport. Unarmed, but essential to every advance.' }
+];
+
+function buildVehicleGrid(){
+  const wrap = document.getElementById('vehGrid');
+  wrap.innerHTML = '';
+  VEHICLE_INFO.forEach(v=>{
+    const unlocked = Save.data.unlocked >= 5 || v.name === 'M4 SHERMAN' || v.type === 'land';
+    const card = document.createElement('div');
+    card.className = 'veh-card' + (unlocked ? '' : ' locked');
+    const s = v.spec;
+    let rows = '';
+    if (v.type === 'air'){
+      rows = `<div class="veh-spec"><span>MAX SPEED</span><span>${s.maxSpeed}</span></div>
+              <div class="veh-spec"><span>TURN RATE</span><span>${s.turnRate.toFixed(2)}</span></div>
+              <div class="veh-spec"><span>CONDITION</span><span>${s.hp}</span></div>`;
+    } else {
+      rows = `<div class="veh-spec"><span>MAX SPEED</span><span>${s.maxSpeed}</span></div>
+              <div class="veh-spec"><span>ACCELERATION</span><span>${s.accel}</span></div>
+              <div class="veh-spec"><span>CONDITION</span><span>${s.hp}</span></div>`;
+    }
+    card.innerHTML = `
+      <h4>${v.name}</h4>
+      <div class="cls">${v.cls}</div>
+      <p>${v.text}</p>
+      <div style="margin-top:12px">${rows}</div>
+    `;
+    wrap.appendChild(card);
+  });
+}
+
+/* ---------------------------- RESULTS SCREEN ---------------------------- */
+function showResults(success, reason, rank){
+  Game.state = 'results';
+  document.getElementById('hud').classList.remove('on');
+  document.getElementById('vignette').classList.remove('on');
+
+  const title = document.getElementById('resTitle');
+  title.textContent = success ? 'MISSION COMPLETE' : 'MISSION FAILED';
+  title.className = 'res-title ' + (success ? 'ok' : 'bad');
+
+  document.getElementById('resReason').textContent = reason || '';
+  document.getElementById('resRank').textContent = success ? rank : '—';
+  document.getElementById('resRank').style.color = success ? 'var(--sand)' : '#7a3a2c';
+
+  document.getElementById('resTime').textContent = fmtTime(M.elapsed);
+  document.getElementById('resKills').textContent = M.kills;
+  document.getElementById('resHull').textContent = Math.max(0, Math.round((M.player.hp/M.player.maxHp)*100)) + '%';
+  document.getElementById('resAmmo').textContent = M.player.shotsFired || 0;
+
+  const nextBtn = document.getElementById('btnNext');
+  const hasNext = !Game.isTraining && M.index >= 0 && (M.index + 1) < MISSION_DEFS.length;
+  nextBtn.style.display = (success && hasNext) ? '' : 'none';
+
+  SCREENS.results.classList.remove('hidden');
+}
+
+/* ---------------------------- PAUSE ---------------------------- */
+function togglePause(){
+  if (Game.state === 'playing'){
+    Game.state = 'paused';
+    SCREENS.pause.classList.remove('hidden');
+    Sound.engineSet(0, 0);
+  } else if (Game.state === 'paused'){
+    Game.state = 'playing';
+    SCREENS.pause.classList.add('hidden');
+    lastTs = 0;
+  }
+}
+
+/* ---------------------------- UI WIRING ---------------------------- */
+document.addEventListener('click', (e)=>{
+  const btn = e.target.closest('button[data-act]');
+  if (!btn) return;
+  const act = btn.dataset.act;
+  Sound.init(); Sound.resume(); Sound.ui();
+
+  switch(act){
+    case 'campaign':
+      Game.state = 'missions';
+      buildMissionList();
+      showScreen('missions');
+      break;
+
+    case 'training':
+      startMission(TRAINING_DEF, -1, true);
+      break;
+
+    case 'vehicles':
+      Game.state = 'vehicles';
+      buildVehicleGrid();
+      showScreen('vehicles');
+      break;
+
+    case 'settings':
+      Game.state = 'settings';
+      document.getElementById('btnSound').textContent = 'SOUND: ' + (Sound.muted ? 'OFF' : 'ON');
+      showScreen('settings');
+      break;
+
+    case 'toggleSound':
+      Sound.muted = !Sound.muted;
+      Save.data.sound = !Sound.muted;
+      Save.save();
+      if (Sound.muted) Sound.engineStop();
+      document.getElementById('btnSound').textContent = 'SOUND: ' + (Sound.muted ? 'OFF' : 'ON');
+      break;
+
+    case 'resetProgress':
+      if (confirm('Reset all campaign progress? This cannot be undone.')){
+        Save.reset();
+        alert('Campaign progress reset.');
+      }
+      break;
+
+    case 'back':
+      Game.state = 'menu';
+      showScreen('menu');
+      break;
+
+    case 'toMenu':
+      Game.state = 'menu';
+      M = null;
+      Sound.engineStop();
+      showScreen('menu');
+      break;
+
+    case 'resume':
+      togglePause();
+      break;
+
+    case 'retry': {
+      const def = Game.isTraining ? TRAINING_DEF : MISSION_DEFS[Game.missionIndex];
+      const idx = Game.missionIndex;
+      const tr = Game.isTraining;
+      SCREENS.results.classList.add('hidden');
+      SCREENS.pause.classList.add('hidden');
+      startMission(def, idx, tr);
+      break;
+    }
+
+    case 'next': {
+      const nextIdx = Game.missionIndex + 1;
+      if (nextIdx < MISSION_DEFS.length){
+        SCREENS.results.classList.add('hidden');
+        startMission(MISSION_DEFS[nextIdx], nextIdx, false);
+      }
+      break;
+    }
+  }
+});
+
+/* ---------------------------- BOOT ---------------------------- */
+Save.load();
+Sound.muted = Save.data.sound === false;
+drawMenuBackdrop();
+
+/* first user gesture unlocks audio */
+['pointerdown','keydown'].forEach(ev=>{
+  window.addEventListener(ev, ()=>{ Sound.init(); Sound.resume(); }, { once:true });
+});
+
+console.log('%cIRON FRONT: WORLD WAR', 'color:#c9b98a;font-size:16px;letter-spacing:4px;');
+console.log('Every vehicle has a role. Every mission has a cost.');
+</script>
+</body>
+</html>
