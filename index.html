@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <title>IRON FRONT: WORLD WAR</title>
 <style>
 /* ============================================================
@@ -26,10 +26,11 @@ body{
   font-family:"Courier New",ui-monospace,monospace;
   color:var(--offwhite);
   user-select:none;
+  -webkit-user-select:none;
   -webkit-font-smoothing:antialiased;
   -webkit-tap-highlight-color:transparent;
 }
-canvas#game{position:fixed;inset:0;width:100%;height:100%;z-index:0;display:block;cursor:none;touch-action:none;}
+canvas#game{position:fixed;inset:0;width:100%;height:100%;z-index:0;display:block;cursor:none;}
 
 /* ---------- generic screen ---------- */
 .screen{
@@ -40,8 +41,6 @@ canvas#game{position:fixed;inset:0;width:100%;height:100%;z-index:0;display:bloc
     linear-gradient(180deg,#0e1109 0%, #171a11 45%, #0b0d08 100%);
   overflow-y:auto;
   overscroll-behavior:contain;
-  -webkit-overflow-scrolling:touch;
-  touch-action:pan-y;
 }
 .screen.hidden{display:none;}
 .screen::after{
@@ -94,7 +93,6 @@ button{
   border:1px solid rgba(201,185,138,.30);
   transition:all .16s ease;
   text-transform:uppercase;
-  touch-action:manipulation;
 }
 button:hover:not(:disabled){
   background:linear-gradient(180deg,rgba(140,160,95,.45),rgba(60,74,42,.8));
@@ -110,6 +108,43 @@ button.danger{border-color:rgba(140,47,30,.7);color:#e2b3a8;}
 .footer{
   margin-top:44px;font-size:10px;letter-spacing:.34em;color:#5b6149;
 }
+
+/* ---------- device picker ---------- */
+.platform-buttons{display:flex;flex-direction:column;gap:14px;max-width:460px;margin:0 auto;}
+.platform-btn{
+  padding:24px 20px;
+  font-size:16px;
+  letter-spacing:.28em;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:8px;
+}
+.platform-btn small{
+  display:block;
+  font-size:11px;
+  letter-spacing:.1em;
+  color:#8a9179;
+  text-transform:none;
+  font-weight:normal;
+}
+
+/* ---------- rotate prompt ---------- */
+#screenRotate .menu-inner{max-width:420px;}
+.rotate-icon{
+  display:block;
+  font-size:60px;
+  line-height:1;
+  margin-bottom:18px;
+  color:var(--sand);
+  animation:rotatePhone 1.8s ease-in-out infinite;
+}
+@keyframes rotatePhone{
+  0%,40%{transform:rotate(0);}
+  60%,100%{transform:rotate(90deg);}
+}
+#screenRotate h2{font-size:20px;letter-spacing:.3em;color:var(--sand);margin-bottom:14px;}
+#screenRotate p{color:#8a9179;font-size:12px;letter-spacing:.14em;line-height:1.9;max-width:320px;margin:0 auto 26px;}
 
 /* ---------- mission select ---------- */
 .list-inner{
@@ -246,7 +281,7 @@ button.danger{border-color:rgba(140,47,30,.7);color:#e2b3a8;}
   position:absolute;left:50%;bottom:120px;transform:translateX(-50%);
   font-size:13px;letter-spacing:.28em;color:var(--sand);
   text-shadow:0 2px 8px #000;opacity:0;transition:opacity .3s;
-  text-align:center;white-space:nowrap;
+  text-align:center;white-space:nowrap;pointer-events:none;
 }
 #hudMsg.show{opacity:1;}
 
@@ -267,6 +302,7 @@ button.danger{border-color:rgba(140,47,30,.7);color:#e2b3a8;}
   position:absolute;left:50%;bottom:16px;transform:translateX(-50%);
   font-size:10px;letter-spacing:.18em;color:#5f6752;
   display:flex;gap:18px;flex-wrap:wrap;justify-content:center;
+  pointer-events:none;
 }
 .hints kbd{
   font-family:inherit;border:1px solid rgba(201,185,138,.25);
@@ -274,135 +310,152 @@ button.danger{border-color:rgba(140,47,30,.7);color:#e2b3a8;}
 }
 
 /* ============================================================
-   TOUCH CONTROLS (mobile)
+   VIRTUAL TOUCH CONTROLS (mobile mode only)
    ============================================================ */
-#touchControls{
-  position:fixed;inset:0;z-index:6;pointer-events:none;display:none;
-  touch-action:none;
-}
-body.mobile #touchControls.on{display:block;}
+#vjoy, #vfire, #vair { display: none; }
 
-.stick{
-  position:absolute;bottom:14px;
-  width:104px;height:104px;border-radius:50%;
-  border:2px solid rgba(201,185,138,.30);
-  background:radial-gradient(circle, rgba(90,107,61,.20), rgba(0,0,0,.38));
-  pointer-events:auto;touch-action:none;
-  box-shadow:0 0 18px rgba(0,0,0,.5) inset;
+body.mode-mobile #hud.on #vjoy,
+body.mode-mobile #hud.on #vfire {
+  display: block;
 }
-#stickMove{left:14px;}
-#stickAim{right:14px;display:none;}
-.stick .knob{
-  position:absolute;left:50%;top:50%;width:44px;height:44px;margin:-22px 0 0 -22px;
-  border-radius:50%;
-  background:rgba(201,185,138,.30);
-  border:2px solid rgba(201,185,138,.55);
-  pointer-events:none;
+body.mode-mobile #hud.on.air-mode #vair {
+  display: flex;
 }
-.stick.active .knob{background:rgba(201,185,138,.55);border-color:var(--sand);}
+body.mode-mobile #hud.on.no-weapon #vfire {
+  display: none;
+}
 
-#rightButtons{
-  position:absolute;right:14px;bottom:14px;
-  display:none;flex-direction:column;align-items:center;gap:10px;
-  pointer-events:none;touch-action:none;
+#vjoy{
+  position: fixed;
+  bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+  left: calc(18px + env(safe-area-inset-left, 0px));
+  width: 140px; height: 140px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(201,185,138,.13), rgba(201,185,138,.03) 60%, rgba(0,0,0,0) 75%);
+  border: 2px solid rgba(201,185,138,.32);
+  z-index: 12;
+  touch-action: none;
+  pointer-events: auto;
 }
-.touch-btn{
-  width:70px;height:70px;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-  border:2px solid rgba(201,185,138,.42);
-  background:rgba(140,47,30,.30);
-  color:var(--offwhite);font-size:11px;letter-spacing:.14em;
-  pointer-events:auto;touch-action:none;
-  -webkit-user-select:none;user-select:none;
+.vjoy-knob{
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  background: rgba(201,185,138,.35);
+  border: 2px solid rgba(201,185,138,.65);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  transition: transform .04s linear;
 }
-.touch-btn.active{background:rgba(200,80,50,.60);border-color:var(--sand);}
-.touch-btn.sm{
-  width:44px;height:44px;font-size:15px;
-  background:rgba(90,107,61,.30);
+
+#vfire{
+  position: fixed;
+  bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+  right: calc(18px + env(safe-area-inset-right, 0px));
+  width: 100px; height: 100px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(140,47,30,.6), rgba(140,47,30,.15));
+  border: 2px solid rgba(201,185,138,.55);
+  color: #e9e5d6;
+  font-family: inherit;
+  font-size: 13px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  z-index: 12;
+  touch-action: none;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
 }
-.touch-btn.sm.active{background:rgba(140,170,95,.55);}
-#thrBtns{display:flex;gap:8px;}
+#vfire.pressed{
+  background: radial-gradient(circle, rgba(200,80,40,.85), rgba(140,47,30,.45));
+  border-color: var(--sand);
+}
+
+#vair{
+  position: fixed;
+  bottom: calc(130px + env(safe-area-inset-bottom, 0px));
+  right: calc(18px + env(safe-area-inset-right, 0px));
+  flex-direction: column;
+  gap: 8px;
+  z-index: 12;
+  pointer-events: auto;
+}
+#vair button{
+  width: 100px; height: 42px;
+  padding: 0;
+  border-radius: 6px;
+  font-size: 15px;
+  letter-spacing: .1em;
+  touch-action: none;
+  text-align: center;
+}
+#vair button.pressed{
+  background: rgba(140,160,95,.5);
+  border-color: var(--sand);
+}
 
 /* ============================================================
-   MOBILE LAYOUT
+   MOBILE MODE — landscape HUD refinements
    ============================================================ */
-body.mobile{cursor:auto;}
-body.mobile canvas#game{cursor:auto;}
+body.mode-mobile #hudTopLeft{
+  top: calc(8px + env(safe-area-inset-top, 0px));
+  left: calc(8px + env(safe-area-inset-left, 0px));
+  min-width: 170px; max-width: 210px;
+  font-size: 9px;
+  padding: 6px 10px;
+}
+body.mode-mobile #hudTopLeft .hud-mission{font-size:10px;margin-bottom:3px;}
+body.mode-mobile #hudTopLeft .hud-objective{font-size:8px;line-height:1.4;max-height:44px;overflow:hidden;margin-bottom:2px;}
+body.mode-mobile #hudTopLeft .hud-timer{font-size:12px;margin-top:3px;}
 
-body.mobile .hud-panel{
-  font-size:9px;
-  padding:6px 8px;
-  letter-spacing:.10em;
-  backdrop-filter:none;
+body.mode-mobile #hudTopRight{
+  top: calc(8px + env(safe-area-inset-top, 0px));
+  right: calc(8px + env(safe-area-inset-right, 0px));
+  padding: 5px;
 }
-body.mobile #hudTopLeft{
-  top:8px;left:8px;min-width:0;max-width:52vw;
-}
-body.mobile .hud-mission{font-size:10px;margin-bottom:3px;letter-spacing:.16em;}
-body.mobile .hud-objective{font-size:9px;line-height:1.45;}
-body.mobile .hud-timer{font-size:12px;margin-top:3px;}
+body.mode-mobile #minimap{width:90px;height:90px;}
+body.mode-mobile .hud-compass{font-size:9px;margin-top:3px;}
 
-body.mobile #hudTopRight{top:8px;right:8px;padding:4px;}
-body.mobile #minimap{width:78px;height:78px;}
-body.mobile .hud-compass{font-size:9px;margin-top:2px;letter-spacing:.18em;}
+body.mode-mobile #hudBottomLeft{
+  bottom: auto;
+  top: 120px;
+  left: calc(8px + env(safe-area-inset-left, 0px));
+  min-width: 160px;
+  font-size: 8px;
+  padding: 5px 8px;
+}
+body.mode-mobile #hudBottomLeft .hud-row{margin-bottom:2px;font-size:8px;gap:10px;}
+body.mode-mobile #hudBottomLeft .bar-line{margin-top:2px;gap:4px;}
+body.mode-mobile #hudBottomLeft .bar-line i{width:32px;font-size:7px;letter-spacing:.1em;}
+body.mode-mobile #hudBottomLeft .bar-track{height:5px;}
 
-body.mobile #hudBottomLeft{
-  bottom:auto;top:50%;left:8px;
-  transform:translateY(-50%) scale(.85);
-  transform-origin:left center;
-  min-width:0;width:172px;
+body.mode-mobile #hudBottomRight{
+  bottom: calc(128px + env(safe-area-inset-bottom, 0px));
+  right: calc(8px + env(safe-area-inset-right, 0px));
+  padding: 6px 10px;
+  min-width: auto;
 }
-body.mobile .bar-line i{width:42px;font-size:8px;}
-body.mobile .bar-track{height:5px;}
+body.mode-mobile .hud-ammo{font-size:16px;}
+body.mode-mobile .hud-ammo small{font-size:9px;}
+body.mode-mobile #hudWeapon{font-size:8px;margin-top:4px;}
+body.mode-mobile .reload-track{height:3px;margin-top:4px;}
 
-body.mobile #hudBottomRight{
-  bottom:auto;top:112px;right:8px;
-  transform:none;
-  min-width:0;text-align:right;
-}
-body.mobile .hud-ammo{font-size:19px;}
-body.mobile .hud-ammo small{font-size:9px;}
-body.mobile .reload-track{margin-top:5px;height:4px;}
+body.mode-mobile #hudMsg{bottom:150px;font-size:11px;}
 
-body.mobile #hudMsg{
-  bottom:auto;top:38%;font-size:11px;letter-spacing:.2em;
-  white-space:normal;padding:0 20px;
-}
-
-body.mobile .hints{display:none;}
-
-/* ============================================================
-   ROTATE OVERLAY
-   ============================================================ */
-#rotateOverlay{
-  display:none;position:fixed;inset:0;z-index:200;
-  background:linear-gradient(180deg,#0e1109,#171a11 50%,#0b0d08);
-  flex-direction:column;align-items:center;justify-content:center;
-  gap:18px;text-align:center;padding:24px;
-}
-body.mobile #rotateOverlay.show{display:flex;}
-#rotateOverlay .rot-icon{
-  font-size:60px;color:var(--sand);
-  animation:rot 2.2s ease-in-out infinite;
-  line-height:1;
-}
-@keyframes rot{
-  0%,30%{transform:rotate(0deg);}
-  60%,100%{transform:rotate(90deg);}
-}
-#rotateOverlay .rt{
-  font-size:15px;letter-spacing:.30em;color:var(--sand);
-}
-#rotateOverlay .rs{
-  font-size:10px;letter-spacing:.22em;color:#8f8462;
-  border-top:1px solid rgba(201,185,138,.18);
-  padding-top:14px;max-width:280px;line-height:2;
-}
+body.mode-mobile .hints{display:none;}
 
 @media(max-width:700px){
+  .hints{display:none;}
   #hudTopRight{transform:scale(.8);transform-origin:top right;}
   #hudBottomLeft,#hudTopLeft{transform:scale(.85);transform-origin:bottom left;}
   #hudTopLeft{transform-origin:top left;}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .rotate-icon{animation:none!important;}
 }
 </style>
 </head>
@@ -410,26 +463,6 @@ body.mobile #rotateOverlay.show{display:flex;}
 
 <canvas id="game"></canvas>
 <div id="vignette"></div>
-
-<!-- ===================== ROTATE OVERLAY ===================== -->
-<div id="rotateOverlay">
-  <div class="rot-icon">▭</div>
-  <div class="rt">ROTATE YOUR DEVICE</div>
-  <div class="rs">LANDSCAPE MODE IS REQUIRED<br>TO PLAY IRON FRONT</div>
-</div>
-
-<!-- ===================== TOUCH CONTROLS ===================== -->
-<div id="touchControls">
-  <div class="stick" id="stickMove"><div class="knob"></div></div>
-  <div class="stick" id="stickAim"><div class="knob"></div></div>
-  <div id="rightButtons">
-    <div id="thrBtns">
-      <div class="touch-btn sm" id="btnThrUp">▲</div>
-      <div class="touch-btn sm" id="btnThrDn">▼</div>
-    </div>
-    <div class="touch-btn" id="btnFire">FIRE</div>
-  </div>
-</div>
 
 <!-- ===================== HUD ===================== -->
 <div id="hud">
@@ -462,19 +495,41 @@ body.mobile #rotateOverlay.show{display:flex;}
   </div>
 
   <div id="hudMsg"></div>
+
+  <!-- Virtual touch controls (mobile mode only) -->
+  <div id="vjoy">
+    <div class="vjoy-knob"></div>
+  </div>
+  <button id="vfire">FIRE</button>
+  <div id="vair">
+    <button id="vthrUp">▲ THR</button>
+    <button id="vthrDn">▼ THR</button>
+  </div>
 </div>
 
-<!-- ===================== PLATFORM SELECT ===================== -->
-<div class="screen" id="screenPlatform">
+<!-- ===================== DEVICE PICKER ===================== -->
+<div class="screen" id="screenDevicePick">
   <div class="menu-inner">
     <h1 class="logo">IRON<span>FRONT</span></h1>
     <div class="logo-sub">WORLD WAR</div>
-    <p class="tagline">SELECT YOUR PLATFORM<br>CHOOSE HOW YOU DEPLOY</p>
-    <div class="menu-buttons">
-      <button data-act="pickDesktop">🖥 DESKTOP — KEYBOARD &amp; MOUSE</button>
-      <button data-act="pickMobile">📱 MOBILE — TOUCH CONTROLS</button>
+    <p class="tagline">SELECT YOUR PLATFORM<br><span style="opacity:.7;font-size:10px;letter-spacing:.4em">CHOOSE HOW YOU WANT TO DEPLOY</span></p>
+    <div class="platform-buttons">
+      <button class="platform-btn" id="pickDesktop">DESKTOP<small>Keyboard &amp; mouse</small></button>
+      <button class="platform-btn" id="pickMobile">MOBILE<small>Touch controls · landscape</small></button>
     </div>
-    <div class="footer">MOBILE PLAY REQUIRES LANDSCAPE ORIENTATION</div>
+    <div class="footer">1944 · FICTIONAL EUROPEAN THEATRE · v1.0</div>
+  </div>
+</div>
+
+<!-- ===================== ROTATE PROMPT ===================== -->
+<div class="screen hidden" id="screenRotate">
+  <div class="menu-inner">
+    <span class="rotate-icon">▭</span>
+    <h2>ROTATE TO LANDSCAPE</h2>
+    <p>IRON FRONT is played sideways so the battlefield, HUD and controls all fit comfortably on screen.</p>
+    <div class="menu-buttons" style="max-width:340px">
+      <button class="ghost" id="rotateUseDesktop">USE DESKTOP LAYOUT INSTEAD</button>
+    </div>
   </div>
 </div>
 
@@ -489,6 +544,7 @@ body.mobile #rotateOverlay.show{display:flex;}
       <button data-act="training">TRAINING GROUND</button>
       <button data-act="vehicles">VEHICLE COLLECTION</button>
       <button data-act="settings">SETTINGS</button>
+      <button class="ghost" data-act="switchMode">◄ CHANGE PLATFORM</button>
     </div>
     <div class="footer">1944 · FICTIONAL EUROPEAN THEATRE · v1.0</div>
   </div>
@@ -522,7 +578,7 @@ body.mobile #rotateOverlay.show{display:flex;}
     <div class="list-title" style="margin-bottom:28px">SETTINGS</div>
     <div class="menu-buttons">
       <button data-act="toggleSound" id="btnSound">SOUND: ON</button>
-      <button data-act="switchPlatform" id="btnPlatform">PLATFORM: DESKTOP</button>
+      <button data-act="switchMode">CHANGE PLATFORM</button>
       <button data-act="resetProgress" class="danger">RESET CAMPAIGN PROGRESS</button>
       <button class="ghost" data-act="back">◄ BACK</button>
     </div>
@@ -565,10 +621,8 @@ body.mobile #rotateOverlay.show{display:flex;}
 'use strict';
 /* ============================================================
    IRON FRONT: WORLD WAR
-   A single-file WWII combined-arms vehicle combat game.
    ============================================================ */
 
-/* ---------------------------- UTILITIES ---------------------------- */
 const TAU = Math.PI * 2;
 const clamp = (v,a,b)=> v<a?a:(v>b?b:v);
 const lerp  = (a,b,t)=> a+(b-a)*t;
@@ -601,17 +655,11 @@ function fmtTime(s){
   const m = Math.floor(s/60);
   return String(m).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
 }
-function deadzone(v, dz){
-  const a = Math.abs(v);
-  if (a < dz) return 0;
-  return (a - dz) / (1 - dz) * Math.sign(v);
-}
 
 /* ---------------------------- AUDIO ---------------------------- */
 const Sound = {
   ctx:null, master:null, noiseBuf:null, muted:false,
   engineOsc:null, engineGain:null, engineFilter:null, engineOn:false,
-
   init(){
     if (this.ctx) return;
     const AC = window.AudioContext || window.webkitAudioContext;
@@ -641,24 +689,10 @@ const Sound = {
     src.connect(f); f.connect(g); g.connect(this.master);
     src.start(t); src.stop(t + dur);
   },
-  gun(){
-    if (this.muted) return;
-    this.noise(0.28, 1500, 0.55, 'lowpass');
-    this.tone(90, 0.18, 0.25, 'square');
-  },
-  mg(){
-    if (this.muted) return;
-    this.noise(0.07, 3200, 0.22, 'bandpass');
-  },
-  hit(){
-    if (this.muted) return;
-    this.noise(0.20, 800, 0.45, 'lowpass');
-  },
-  boom(){
-    if (this.muted) return;
-    this.noise(0.9, 420, 0.85, 'lowpass');
-    this.tone(55, 0.7, 0.35, 'sawtooth');
-  },
+  gun(){ if (this.muted) return; this.noise(0.28, 1500, 0.55, 'lowpass'); this.tone(90, 0.18, 0.25, 'square'); },
+  mg(){ if (this.muted) return; this.noise(0.07, 3200, 0.22, 'bandpass'); },
+  hit(){ if (this.muted) return; this.noise(0.20, 800, 0.45, 'lowpass'); },
+  boom(){ if (this.muted) return; this.noise(0.9, 420, 0.85, 'lowpass'); this.tone(55, 0.7, 0.35, 'sawtooth'); },
   tone(freq, dur, gain, type){
     if (!this.ctx || this.muted) return;
     const o = this.ctx.createOscillator();
@@ -672,7 +706,6 @@ const Sound = {
     o.start(t); o.stop(t + dur);
   },
   ui(){ this.tone(520, 0.06, 0.06, 'square'); },
-
   engineStart(){
     if (!this.ctx || this.engineOn) return;
     const o = this.ctx.createOscillator();
@@ -705,115 +738,6 @@ const Sound = {
   }
 };
 
-/* ---------------------------- PLATFORM ---------------------------- */
-const PLATFORM_KEY = 'ironfront_platform_v1';
-const Platform = {
-  value: null,
-  load(){
-    try{ this.value = localStorage.getItem(PLATFORM_KEY); }catch(e){}
-  },
-  set(v){
-    this.value = v;
-    try{
-      if (v) localStorage.setItem(PLATFORM_KEY, v);
-      else localStorage.removeItem(PLATFORM_KEY);
-    }catch(e){}
-  },
-  get isMobile(){ return this.value === 'mobile'; }
-};
-
-/* ---------------------------- TOUCH INPUT ---------------------------- */
-const Touch = {
-  enabled: false,
-  move: { x:0, y:0, active:false },
-  aim:  { x:0, y:0, active:false },
-  aimAngle: -Math.PI/2,
-  fire: false,
-  thrUp: false,
-  thrDn: false,
-  reset(){
-    this.move.x = this.move.y = 0; this.move.active = false;
-    this.aim.x = this.aim.y = 0; this.aim.active = false;
-    this.aimAngle = -Math.PI/2;
-    this.fire = false; this.thrUp = false; this.thrDn = false;
-  }
-};
-
-function bindStick(el, state, isAim){
-  const knob = el.querySelector('.knob');
-  let pid = null;
-
-  function calc(e){
-    const r = el.getBoundingClientRect();
-    const cx = r.left + r.width/2;
-    const cy = r.top + r.height/2;
-    const max = Math.max(10, r.width * 0.42);
-    let dx = e.clientX - cx, dy = e.clientY - cy;
-    const d = Math.hypot(dx, dy) || 1;
-    if (d > max){ dx = dx/d*max; dy = dy/d*max; }
-    return { dx, dy, max };
-  }
-
-  function apply(e){
-    const p = calc(e);
-    state.x = p.dx / p.max;
-    state.y = p.dy / p.max;
-    state.active = true;
-    knob.style.transform = 'translate(' + p.dx + 'px,' + p.dy + 'px)';
-    if (isAim && (Math.abs(state.x) > 0.18 || Math.abs(state.y) > 0.18)){
-      Touch.aimAngle = Math.atan2(state.y, state.x);
-    }
-  }
-
-  el.addEventListener('pointerdown', (e)=>{
-    if (pid !== null) return;
-    e.preventDefault();
-    pid = e.pointerId;
-    try{ el.setPointerCapture(pid); }catch(err){}
-    el.classList.add('active');
-    apply(e);
-  });
-
-  el.addEventListener('pointermove', (e)=>{
-    if (e.pointerId !== pid) return;
-    e.preventDefault();
-    apply(e);
-  });
-
-  function release(e){
-    if (e.pointerId !== pid) return;
-    pid = null;
-    state.x = 0; state.y = 0; state.active = false;
-    el.classList.remove('active');
-    knob.style.transform = 'translate(0,0)';
-  }
-  el.addEventListener('pointerup', release);
-  el.addEventListener('pointercancel', release);
-}
-
-function bindHold(el, setter){
-  el.addEventListener('pointerdown', (e)=>{
-    e.preventDefault();
-    try{ el.setPointerCapture(e.pointerId); }catch(err){}
-    el.classList.add('active');
-    setter(true);
-  });
-  function off(e){
-    el.classList.remove('active');
-    setter(false);
-  }
-  el.addEventListener('pointerup', off);
-  el.addEventListener('pointercancel', off);
-}
-
-(function initTouchControls(){
-  bindStick(document.getElementById('stickMove'), Touch.move, false);
-  bindStick(document.getElementById('stickAim'),  Touch.aim,  true);
-  bindHold(document.getElementById('btnFire'),  v => Touch.fire  = v);
-  bindHold(document.getElementById('btnThrUp'), v => Touch.thrUp = v);
-  bindHold(document.getElementById('btnThrDn'), v => Touch.thrDn = v);
-})();
-
 /* ---------------------------- SAVE ---------------------------- */
 const SAVE_KEY = 'ironfront_ww_save_v1';
 const Save = {
@@ -828,9 +752,7 @@ const Save = {
     }catch(e){}
     if (this.data.sound === false) Sound.muted = true;
   },
-  save(){
-    try{ localStorage.setItem(SAVE_KEY, JSON.stringify(this.data)); }catch(e){}
-  },
+  save(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(this.data)); }catch(e){} },
   unlock(n){ if (n > this.data.unlocked){ this.data.unlocked = Math.min(n, MISSION_DEFS.length); this.save(); } },
   setRating(i, r){ this.data.ratings[i] = r; this.save(); },
   rating(i){ return this.data.ratings[i] || null; },
@@ -851,8 +773,45 @@ function resize(){
   canvas.style.height = VH + 'px';
 }
 window.addEventListener('resize', resize);
-window.addEventListener('orientationchange', ()=>{ setTimeout(resize, 120); });
 resize();
+
+/* ---------------------------- MODE / ORIENTATION ---------------------------- */
+let mode = null;          // null | 'desktop' | 'mobile'
+let autoPaused = false;   // paused because of portrait orientation
+function isLandscape(){ return window.innerWidth >= window.innerHeight; }
+
+function setMode(m){
+  mode = m;
+  document.body.classList.toggle('mode-mobile', m === 'mobile');
+  document.getElementById('screenDevicePick').classList.add('hidden');
+  Game.state = 'menu';
+  checkOrientation();
+  showScreen('menu');
+}
+
+function checkOrientation(){
+  const rot = document.getElementById('screenRotate');
+  if (mode === 'mobile' && !isLandscape()){
+    rot.classList.remove('hidden');
+    if (Game.state === 'playing'){
+      Game.state = 'paused';
+      autoPaused = true;
+      Sound.engineSet(0, 0);
+    }
+  } else {
+    rot.classList.add('hidden');
+    if (autoPaused){
+      autoPaused = false;
+      if (Game.state === 'paused'){
+        Game.state = 'playing';
+        lastTs = 0;
+      }
+    }
+  }
+}
+
+window.addEventListener('resize', ()=>{ checkOrientation(); });
+window.addEventListener('orientationchange', ()=>setTimeout(checkOrientation, 200));
 
 /* ---------------------------- INPUT ---------------------------- */
 const Input = {
@@ -862,140 +821,226 @@ const Input = {
       if (['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Tab'].includes(e.code)) e.preventDefault();
       if (e.repeat) return;
       this.keys[e.code] = true;
-      if (e.code === 'Escape') togglePause();
+      if (e.code === 'Escape' && mode !== 'mobile') togglePause();
     });
     window.addEventListener('keyup', e=>{ this.keys[e.code] = false; });
     window.addEventListener('mousemove', e=>{ this.mouse.x = e.clientX; this.mouse.y = e.clientY; });
     window.addEventListener('mousedown', e=>{
-      if (Touch.enabled) return;           // no synthetic mouse firing on mobile
+      if (mode === 'mobile') return; // ignore emulated mouse on touch devices
       if (e.button === 0){ this.mouse.down = true; Sound.resume(); }
     });
     window.addEventListener('mouseup', e=>{
+      if (mode === 'mobile') return;
       if (e.button === 0) this.mouse.down = false;
     });
     window.addEventListener('blur', ()=>{ this.keys = {}; this.mouse.down = false; });
     canvas.addEventListener('contextmenu', e=> e.preventDefault());
+    canvas.addEventListener('touchstart', e=>{ e.preventDefault(); }, { passive: false });
   },
   key(c){ return !!this.keys[c]; }
 };
 Input.init();
 
+/* ---------------------------- VIRTUAL JOYSTICK ---------------------------- */
+const VJoy = {
+  el:null, knob:null,
+  active:false, touchId:null,
+  cx:0, cy:0,
+  dx:0, dy:0,
+  R:60,
+  init(){
+    this.el = document.getElementById('vjoy');
+    this.knob = this.el.querySelector('.vjoy-knob');
+    if (!this.el || !this.knob) return;
+
+    const start = (e)=>{
+      if (this.active) return;
+      const t = (e.changedTouches ? e.changedTouches[0] : e);
+      this.active = true;
+      this.touchId = t.identifier !== undefined ? t.identifier : 'mouse';
+      const rect = this.el.getBoundingClientRect();
+      this.cx = rect.left + rect.width/2;
+      this.cy = rect.top + rect.height/2;
+      this.R = rect.width * 0.42;
+      this.update(t.clientX, t.clientY);
+      e.preventDefault();
+    };
+
+    const move = (e)=>{
+      if (!this.active) return;
+      const touches = e.changedTouches ? Array.from(e.changedTouches) : [e];
+      for (const t of touches){
+        if (t.identifier === this.touchId || this.touchId === 'mouse'){
+          this.update(t.clientX, t.clientY);
+          e.preventDefault();
+          break;
+        }
+      }
+    };
+
+    const end = (e)=>{
+      if (!this.active) return;
+      const touches = e.changedTouches ? Array.from(e.changedTouches) : [e];
+      for (const t of touches){
+        if (t.identifier === this.touchId || this.touchId === 'mouse'){
+          this.reset();
+          break;
+        }
+      }
+    };
+
+    this.el.addEventListener('touchstart', start, { passive: false });
+    this.el.addEventListener('mousedown', start);
+    window.addEventListener('touchmove', move, { passive: false });
+    window.addEventListener('mousemove', move);
+    window.addEventListener('touchend', end);
+    window.addEventListener('touchcancel', end);
+    window.addEventListener('mouseup', end);
+  },
+  update(x, y){
+    let dx = x - this.cx;
+    let dy = y - this.cy;
+    const d = Math.hypot(dx, dy);
+    if (d > this.R){
+      dx = dx / d * this.R;
+      dy = dy / d * this.R;
+    }
+    this.dx = dx / this.R;
+    this.dy = dy / this.R;
+    this.knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+    this.applyKeys();
+  },
+  applyKeys(){
+    const isAir = M && M.player && M.player.kind === 'aircraft';
+    if (isAir){
+      Input.keys['KeyA'] = this.dx < -0.28;
+      Input.keys['KeyD'] = this.dx >  0.28;
+      Input.keys['ArrowUp'] = this.dy < -0.28;
+      Input.keys['ArrowDown'] = this.dy > 0.28;
+      Input.keys['KeyW'] = false;
+      Input.keys['KeyS'] = false;
+    } else {
+      Input.keys['KeyA'] = this.dx < -0.28;
+      Input.keys['KeyD'] = this.dx >  0.28;
+      Input.keys['KeyW'] = this.dy < -0.28;
+      Input.keys['KeyS'] = this.dy >  0.28;
+      Input.keys['ArrowUp'] = false;
+      Input.keys['ArrowDown'] = false;
+    }
+  },
+  reset(){
+    this.active = false;
+    this.touchId = null;
+    this.dx = 0; this.dy = 0;
+    this.knob.style.transform = 'translate(-50%, -50%)';
+    ['KeyA','KeyD','KeyW','KeyS','ArrowUp','ArrowDown'].forEach(k => Input.keys[k] = false);
+  }
+};
+
+/* ---------------------------- VIRTUAL FIRE BUTTON ---------------------------- */
+const VFire = {
+  el:null, active:false,
+  init(){
+    this.el = document.getElementById('vfire');
+    if (!this.el) return;
+
+    const press = (e)=>{ e.preventDefault(); this.active = true; Input.keys['Space'] = true; this.el.classList.add('pressed'); };
+    const release = (e)=>{ if (e) e.preventDefault(); this.active = false; Input.keys['Space'] = false; this.el.classList.remove('pressed'); };
+
+    this.el.addEventListener('touchstart', press, { passive: false });
+    this.el.addEventListener('touchend', release);
+    this.el.addEventListener('touchcancel', release);
+    this.el.addEventListener('mousedown', press);
+    this.el.addEventListener('mouseup', release);
+    this.el.addEventListener('mouseleave', release);
+  }
+};
+
+/* ---------------------------- VIRTUAL THROTTLE (aircraft) ---------------------------- */
+const VThrottle = {
+  init(){
+    const bind = (id, key)=>{
+      const el = document.getElementById(id);
+      if (!el) return;
+      const press = (e)=>{ e.preventDefault(); Input.keys[key] = true; el.classList.add('pressed'); };
+      const release = (e)=>{ if (e) e.preventDefault(); Input.keys[key] = false; el.classList.remove('pressed'); };
+      el.addEventListener('touchstart', press, { passive: false });
+      el.addEventListener('touchend', release);
+      el.addEventListener('touchcancel', release);
+      el.addEventListener('mousedown', press);
+      el.addEventListener('mouseup', release);
+      el.addEventListener('mouseleave', release);
+    };
+    bind('vthrUp', 'KeyW');
+    bind('vthrDn', 'KeyS');
+  }
+};
+
 /* ---------------------------- BIOMES ---------------------------- */
 const BIOMES = {
-  summer:{
-    ground:'#5b6a3c', ground2:'#68784a', ground3:'#4d5c33', rough:'#6f6a45',
-    road:'#6d6553', roadLine:'#8a8271',
-    tree:'#33431f', tree2:'#42562a', trunk:'#3a3227',
-    bld:'#7d7565', bldRoof:'#5d564a', bldShadow:'#2c2a23',
-    name:'SUMMER'
-  },
-  winter:{
-    ground:'#b2b6ac', ground2:'#c4c8be', ground3:'#a2a69c', rough:'#9a9c90',
-    road:'#8d8d86', roadLine:'#a8a8a0',
-    tree:'#3d4b3d', tree2:'#4d5d4b', trunk:'#3a3227',
-    bld:'#8e8e88', bldRoof:'#6d6d67', bldShadow:'#3a3a38',
-    name:'WINTER'
-  },
-  industrial:{
-    ground:'#6a6355', ground2:'#78705f', ground3:'#5b5448', rough:'#4e4a40',
-    road:'#54504a', roadLine:'#6e6a62',
-    tree:'#454a30', tree2:'#555c3c', trunk:'#3a3227',
-    bld:'#5f5c56', bldRoof:'#454340', bldShadow:'#22211f',
-    name:'INDUSTRIAL'
-  }
+  summer:{ ground:'#5b6a3c', ground2:'#68784a', ground3:'#4d5c33', rough:'#6f6a45',
+    road:'#6d6553', roadLine:'#8a8271', tree:'#33431f', tree2:'#42562a', trunk:'#3a3227',
+    bld:'#7d7565', bldRoof:'#5d564a', bldShadow:'#2c2a23', name:'SUMMER' },
+  winter:{ ground:'#b2b6ac', ground2:'#c4c8be', ground3:'#a2a69c', rough:'#9a9c90',
+    road:'#8d8d86', roadLine:'#a8a8a0', tree:'#3d4b3d', tree2:'#4d5d4b', trunk:'#3a3227',
+    bld:'#8e8e88', bldRoof:'#6d6d67', bldShadow:'#3a3a38', name:'WINTER' },
+  industrial:{ ground:'#6a6355', ground2:'#78705f', ground3:'#5b5448', rough:'#4e4a40',
+    road:'#54504a', roadLine:'#6e6a62', tree:'#454a30', tree2:'#555c3c', trunk:'#3a3227',
+    bld:'#5f5c56', bldRoof:'#454340', bldShadow:'#22211f', name:'INDUSTRIAL' }
 };
 
 /* ---------------------------- VEHICLE SPECS ---------------------------- */
 const TANK_SPECS = {
   sherman:{ name:'M4 SHERMAN', cls:'MEDIUM TANK', maxSpeed:108, accel:78, turnRate:1.55,
-            reloadTime:2.1, ammo:34, damage:34, shellSpeed:900, turretSpeed:1.7, hp:100,
-            radius:24, len:50, wid:32 },
+    reloadTime:2.1, ammo:34, damage:34, shellSpeed:900, turretSpeed:1.7, hp:100, radius:24, len:50, wid:32 },
   churchill:{ name:'CHURCHILL', cls:'INFANTRY TANK', maxSpeed:78, accel:52, turnRate:1.15,
-            reloadTime:2.5, ammo:40, damage:38, shellSpeed:820, turretSpeed:1.15, hp:145,
-            radius:27, len:58, wid:36 },
+    reloadTime:2.5, ammo:40, damage:38, shellSpeed:820, turretSpeed:1.15, hp:145, radius:27, len:58, wid:36 },
   cromwell:{ name:'CROMWELL', cls:'CRUISER TANK', maxSpeed:132, accel:95, turnRate:1.85,
-            reloadTime:2.3, ammo:30, damage:30, shellSpeed:920, turretSpeed:1.9, hp:88,
-            radius:23, len:48, wid:30 }
+    reloadTime:2.3, ammo:30, damage:30, shellSpeed:920, turretSpeed:1.9, hp:88, radius:23, len:48, wid:30 }
 };
 const AIR_SPECS = {
   fighter:{ name:'SPITFIRE', cls:'FIGHTER', maxSpeed:265, turnRate:1.75, hp:60,
-            fuelMax:100, ammo:320, gunRate:0.085, dmg:9, bulletSpeed:820, radius:22 },
+    fuelMax:100, ammo:320, gunRate:0.085, dmg:9, bulletSpeed:820, radius:22 },
   fighter2:{ name:'HURRICANE', cls:'FIGHTER', maxSpeed:238, turnRate:1.55, hp:78,
-            fuelMax:110, ammo:360, gunRate:0.08, dmg:10, bulletSpeed:800, radius:24 },
+    fuelMax:110, ammo:360, gunRate:0.08, dmg:10, bulletSpeed:800, radius:24 },
   fighter3:{ name:'MUSTANG', cls:'FIGHTER', maxSpeed:300, turnRate:1.6, hp:66,
-            fuelMax:120, ammo:340, gunRate:0.075, dmg:10, bulletSpeed:880, radius:23 }
+    fuelMax:120, ammo:340, gunRate:0.075, dmg:10, bulletSpeed:880, radius:23 }
 };
 const TRUCK_SPECS = {
   truck:{ name:'CARGO TRUCK', cls:'TRANSPORT', maxSpeed:150, accel:95, turnRate:1.35,
-          hp:130, radius:22, len:52, wid:26, steerMax:0.9 }
+    hp:130, radius:22, len:52, wid:26, steerMax:0.9 }
 };
 const ENEMY_TANK_SPECS = {
   heavy:{ name:'ENEMY HEAVY', maxSpeed:88, accel:62, turnRate:1.2,
-          reloadTime:2.6, ammo:999, damage:26, shellSpeed:820, turretSpeed:1.1, hp:120,
-          radius:26, len:54, wid:34 }
+    reloadTime:2.6, ammo:999, damage:26, shellSpeed:820, turretSpeed:1.1, hp:120, radius:26, len:54, wid:34 }
 };
 
 /* ---------------------------- MISSIONS ---------------------------- */
 const MISSION_DEFS = [
-  { name:'First Deployment', type:'tank', vehicle:'sherman', biome:'summer', seed:101,
-    enemies:3, timeLimit:300,
-    brief:'Your first command. Clear the enemy patrol from the approach road.',
-    objectives:[{type:'destroy', need:3}] },
-
-  { name:'Broken Road', type:'transport', vehicle:'truck', biome:'summer', seed:102,
-    enemies:2, timeLimit:170,
-    brief:'Deliver fuel and ammunition to the forward depot. The road is not safe.',
-    objectives:[{type:'deliver'}] },
-
-  { name:'Steel Horizon', type:'tank', vehicle:'sherman', biome:'summer', seed:103,
-    enemies:5, timeLimit:360,
-    brief:'Push through the village and take the crossroads. Enemy armour is dug in.',
-    objectives:[{type:'destroy', need:4},{type:'reach'}] },
-
-  { name:'Air Cover', type:'aircraft', vehicle:'fighter', biome:'summer', seed:104,
-    enemies:3, timeLimit:240,
-    brief:'Fly the reconnaissance route and clear enemy fighters from the corridor.',
-    objectives:[{type:'waypoints', count:4},{type:'destroy', need:3}] },
-
-  { name:'Frozen Ground', type:'tank', vehicle:'churchill', biome:'winter', seed:105,
-    enemies:4, timeLimit:330,
-    brief:'The counteroffensive begins in the snow. Break the enemy spearhead.',
-    objectives:[{type:'destroy', need:4}] },
-
-  { name:'Silent Skies', type:'aircraft', vehicle:'fighter2', biome:'winter', seed:106,
-    enemies:2, timeLimit:220,
-    brief:'Photograph the enemy build-up. Complete the route and stay alive.',
-    objectives:[{type:'waypoints', count:5}] },
-
-  { name:'Supply Lines', type:'transport', vehicle:'truck', biome:'winter', seed:107,
-    enemies:3, timeLimit:200,
-    brief:'Run the convoy through the frozen pass. Deliver before nightfall.',
-    objectives:[{type:'deliver'}] },
-
-  { name:'Defensive Perimeter', type:'tank', vehicle:'sherman', biome:'winter', seed:108,
-    enemies:4, timeLimit:200, waves:true,
-    brief:'Hold the line for two minutes. Reinforcements are on the way.',
-    objectives:[{type:'survive', need:120}] },
-
-  { name:'Industrial Zone', type:'tank', vehicle:'cromwell', biome:'industrial', seed:109,
-    enemies:6, timeLimit:360,
-    brief:'The factory district is fortified. Clear the armour and break through.',
-    objectives:[{type:'destroy', need:5},{type:'reach'}] },
-
-  { name:'Final Sortie', type:'aircraft', vehicle:'fighter3', biome:'industrial', seed:110,
-    enemies:4, timeLimit:260,
-    brief:'The last enemy air group is massing. Destroy them over the industrial belt.',
-    objectives:[{type:'destroy', need:4},{type:'waypoints', count:3}] },
-
-  { name:'Last Convoy', type:'transport', vehicle:'truck', biome:'industrial', seed:111,
-    enemies:4, timeLimit:190,
-    brief:'One final delivery. Get the convoy to the staging area intact.',
-    objectives:[{type:'deliver'}] },
-
-  { name:'Iron Front', type:'tank', vehicle:'sherman', biome:'industrial', seed:112,
-    enemies:8, timeLimit:420,
-    brief:'Everything ends here. Destroy the remaining armour and take the command post.',
-    objectives:[{type:'destroy', need:6},{type:'reach'}] }
+  { name:'First Deployment', type:'tank', vehicle:'sherman', biome:'summer', seed:101, enemies:3, timeLimit:300,
+    brief:'Your first command. Clear the enemy patrol from the approach road.', objectives:[{type:'destroy', need:3}] },
+  { name:'Broken Road', type:'transport', vehicle:'truck', biome:'summer', seed:102, enemies:2, timeLimit:170,
+    brief:'Deliver fuel and ammunition to the forward depot. The road is not safe.', objectives:[{type:'deliver'}] },
+  { name:'Steel Horizon', type:'tank', vehicle:'sherman', biome:'summer', seed:103, enemies:5, timeLimit:360,
+    brief:'Push through the village and take the crossroads. Enemy armour is dug in.', objectives:[{type:'destroy', need:4},{type:'reach'}] },
+  { name:'Air Cover', type:'aircraft', vehicle:'fighter', biome:'summer', seed:104, enemies:3, timeLimit:240,
+    brief:'Fly the reconnaissance route and clear enemy fighters from the corridor.', objectives:[{type:'waypoints', count:4},{type:'destroy', need:3}] },
+  { name:'Frozen Ground', type:'tank', vehicle:'churchill', biome:'winter', seed:105, enemies:4, timeLimit:330,
+    brief:'The counteroffensive begins in the snow. Break the enemy spearhead.', objectives:[{type:'destroy', need:4}] },
+  { name:'Silent Skies', type:'aircraft', vehicle:'fighter2', biome:'winter', seed:106, enemies:2, timeLimit:220,
+    brief:'Photograph the enemy build-up. Complete the route and stay alive.', objectives:[{type:'waypoints', count:5}] },
+  { name:'Supply Lines', type:'transport', vehicle:'truck', biome:'winter', seed:107, enemies:3, timeLimit:200,
+    brief:'Run the convoy through the frozen pass. Deliver before nightfall.', objectives:[{type:'deliver'}] },
+  { name:'Defensive Perimeter', type:'tank', vehicle:'sherman', biome:'winter', seed:108, enemies:4, timeLimit:200, waves:true,
+    brief:'Hold the line for two minutes. Reinforcements are on the way.', objectives:[{type:'survive', need:120}] },
+  { name:'Industrial Zone', type:'tank', vehicle:'cromwell', biome:'industrial', seed:109, enemies:6, timeLimit:360,
+    brief:'The factory district is fortified. Clear the armour and break through.', objectives:[{type:'destroy', need:5},{type:'reach'}] },
+  { name:'Final Sortie', type:'aircraft', vehicle:'fighter3', biome:'industrial', seed:110, enemies:4, timeLimit:260,
+    brief:'The last enemy air group is massing. Destroy them over the industrial belt.', objectives:[{type:'destroy', need:4},{type:'waypoints', count:3}] },
+  { name:'Last Convoy', type:'transport', vehicle:'truck', biome:'industrial', seed:111, enemies:4, timeLimit:190,
+    brief:'One final delivery. Get the convoy to the staging area intact.', objectives:[{type:'deliver'}] },
+  { name:'Iron Front', type:'tank', vehicle:'sherman', biome:'industrial', seed:112, enemies:8, timeLimit:420,
+    brief:'Everything ends here. Destroy the remaining armour and take the command post.', objectives:[{type:'destroy', need:6},{type:'reach'}] }
 ];
 
 const TRAINING_DEF = {
@@ -1068,7 +1113,6 @@ function buildMap(def){
     }
     roads.push(pts);
   }
-
   const crossCount = 1 + Math.floor(rnd()*2);
   for (let i=0;i<crossCount;i++){
     const pts = [];
@@ -1202,50 +1246,35 @@ function buildMap(def){
 /* ---------------------------- VEHICLE FACTORY ---------------------------- */
 function makeTank(x,y,angle,spec,isPlayer,isEnemy){
   return {
-    kind:'tank', x, y, angle, speed:0,
-    turret: angle,
-    hp: spec.hp, maxHp: spec.hp,
-    engine:100, tracks:100, turretHp:100,
+    kind:'tank', x, y, angle, speed:0, turret: angle,
+    hp: spec.hp, maxHp: spec.hp, engine:100, tracks:100, turretHp:100,
     reload: isEnemy ? rand(0.6,1.8) : 0,
-    spec,
-    ammo: spec.ammo, maxAmmo: spec.ammo,
-    radius: spec.radius,
+    spec, ammo: spec.ammo, maxAmmo: spec.ammo, radius: spec.radius,
     isPlayer: !!isPlayer, isEnemy: !!isEnemy,
-    alive: true, fireFlash:0, hitFlash:0,
-    shotsFired: 0,
-    ai:{ state:'idle', timer:0, retarget:0, aimErr:0 },
-    trailTimer:0
+    alive: true, fireFlash:0, hitFlash:0, shotsFired: 0,
+    ai:{ state:'idle', timer:0, retarget:0, aimErr:0 }, trailTimer:0
   };
 }
-
 function makeTruck(x,y,angle,spec){
   return {
     kind:'truck', x, y, angle, speed:0, steer:0,
-    hp: spec.hp, maxHp: spec.hp,
-    engine:100, tracks:100, turretHp:100,
+    hp: spec.hp, maxHp: spec.hp, engine:100, tracks:100, turretHp:100,
     spec, radius: spec.radius,
-    isPlayer:true, isEnemy:false,
-    alive:true, hitFlash:0, fireFlash:0,
+    isPlayer:true, isEnemy:false, alive:true, hitFlash:0, fireFlash:0,
     cargo: true, shotsFired:0
   };
 }
-
 function makeAircraft(x,y,angle,spec,isPlayer){
   return {
-    kind:'aircraft', x, y, angle,
-    speed: spec.maxSpeed*0.62,
-    throttle: 0.62,
-    alt: isPlayer ? 900 : rand(700,1200),
-    bank: 0, pitch: 0,
+    kind:'aircraft', x, y, angle, speed: spec.maxSpeed*0.62, throttle: 0.62,
+    alt: isPlayer ? 900 : rand(700,1200), bank: 0, pitch: 0,
     hp: spec.hp, maxHp: spec.hp,
     fuel: spec.fuelMax, fuelMax: spec.fuelMax,
     engine:100, tracks:100, turretHp:100,
-    ammo: spec.ammo, maxAmmo: spec.ammo,
-    gunTimer: 0,
+    ammo: spec.ammo, maxAmmo: spec.ammo, gunTimer: 0,
     spec, radius: spec.radius,
     isPlayer: !!isPlayer, isEnemy: !isPlayer,
-    alive:true, hitFlash:0, fireFlash:0,
-    shotsFired:0,
+    alive:true, hitFlash:0, fireFlash:0, shotsFired:0,
     ai:{ state:'patrol', timer:0 }
   };
 }
@@ -1258,8 +1287,6 @@ function startMission(def, index, isTraining){
   Game.isTraining = !!isTraining;
   Game.flash = 0;
 
-  Touch.reset();
-
   const map = buildMap(def);
   const S = map.size;
 
@@ -1268,7 +1295,6 @@ function startMission(def, index, isTraining){
     px = S*0.50; py = S*0.86; pAngle = -Math.PI / 2;
   } else {
     px = S*0.50; py = S*0.84; pAngle = -Math.PI / 2;
-
     if (map.roads.length){
       const main = map.roads[0];
       let best = main[0], bd = 1e9;
@@ -1278,7 +1304,6 @@ function startMission(def, index, isTraining){
       }
       px = best.x; py = best.y;
     }
-
     for (let i=0;i<80;i++){
       let blocked = false;
       for (const o of map.obstacles){
@@ -1332,8 +1357,7 @@ function startMission(def, index, isTraining){
   const objectives = [];
   for (const od of def.objectives){
     if (od.type === 'reach' || od.type === 'deliver'){
-      objectives.push({ type: od.type, x: goal.x, y: goal.y, r: 130, got:0,
-                        label: od.type==='deliver'?'DELIVER CARGO':'REACH OBJECTIVE' });
+      objectives.push({ type: od.type, x: goal.x, y: goal.y, r: 130, got:0, label: od.type==='deliver'?'DELIVER CARGO':'REACH OBJECTIVE' });
     } else if (od.type === 'destroy'){
       objectives.push({ type:'destroy', need: od.need, got:0, label:'DESTROY ENEMY ARMOUR' });
     } else if (od.type === 'survive'){
@@ -1356,33 +1380,16 @@ function startMission(def, index, isTraining){
   }
 
   M = {
-    def, index, isTraining:!!isTraining,
-    map,
-    size: S,
-    player,
-    enemies,
-    projectiles: [],
-    particles: [],
-    obstacles: map.obstacles,
-    roads: map.roads,
-    roughPatches: map.roughPatches,
-    objectives,
-    goal,
-    elapsed: 0,
-    timer: def.timeLimit || 0,
-    kills: 0,
-    waveTimer: 0,
-    status: 'active',
-    biome: map.biome,
-    hintTimer: 0,
-    completed: false
+    def, index, isTraining:!!isTraining, map, size: S,
+    player, enemies, projectiles: [], particles: [],
+    obstacles: map.obstacles, roads: map.roads, roughPatches: map.roughPatches,
+    objectives, goal, elapsed: 0, timer: def.timeLimit || 0,
+    kills: 0, waveTimer: 0, status: 'active', biome: map.biome,
+    hintTimer: 0, completed: false
   };
 
   cam.x = player.x; cam.y = player.y;
   cam.zoom = def.type === 'aircraft' ? 0.62 : 1.0;
-  if (Touch.enabled){
-    cam.zoom *= 1.05;   // slightly wider view on small screens
-  }
   cam.shake = 0;
 
   Game.state = 'playing';
@@ -1391,8 +1398,9 @@ function startMission(def, index, isTraining){
   document.getElementById('vignette').classList.add('on');
 
   setupHUDForVehicle(player);
-  setupTouchForVehicle(player);
   renderMinimapStatic();
+
+  if (VJoy.reset) VJoy.reset();
 
   Sound.engineStart();
   showMessage(def.training ? 'TRAINING EXERCISE — NO ENEMY CONTACT' : 'MISSION START — ' + def.name.toUpperCase(), 2.6);
@@ -1440,35 +1448,13 @@ function setupHUDForVehicle(v){
   HUDel.lineFuel.style.display = isAir ? 'flex' : 'none';
   HUDel.weapon.textContent = isAir ? 'MACHINE GUNS' : (v.kind === 'truck' ? 'UNARMED' : 'MAIN GUN');
   HUDel.ammoMax.textContent = v.maxAmmo || 0;
+
+  const hud = document.getElementById('hud');
+  hud.classList.toggle('air-mode', isAir);
+  hud.classList.toggle('no-weapon', v.kind === 'truck');
 }
 
-function setupTouchForVehicle(v){
-  const tc = document.getElementById('touchControls');
-  if (!Platform.isMobile){
-    tc.classList.remove('on');
-    return;
-  }
-  tc.classList.add('on');
-
-  const aimStick  = document.getElementById('stickAim');
-  const rightBtns = document.getElementById('rightButtons');
-
-  if (v.kind === 'tank'){
-    aimStick.style.display = 'block';
-    rightBtns.style.display = 'none';
-  } else if (v.kind === 'aircraft'){
-    aimStick.style.display = 'none';
-    rightBtns.style.display = 'flex';
-  } else {
-    aimStick.style.display = 'none';
-    rightBtns.style.display = 'none';
-  }
-}
-
-function renderMinimapStatic(){
-  if (!M) return;
-  minimapImg = M.map.minimap;
-}
+function renderMinimapStatic(){ if (M) minimapImg = M.map.minimap; }
 
 function updateHUD(){
   if (!M) return;
@@ -1486,7 +1472,7 @@ function updateHUD(){
     }
     else if (o.type === 'waypoints'){ txt += ` — ${o.got}/${o.points.length}`; done = o.got >= o.points.length; }
     else if (o.type === 'reach' || o.type === 'deliver'){ done = !!o.got; }
-    else if (o.type === 'training'){ txt = 'TRAINING EXERCISE'; done = false; }
+    else if (o.type === 'training'){ txt = 'TRAINING EXERCISE'; }
     objHTML += `<div class="${done?'done':''}">${done?'✔':'▸'} ${txt}</div>`;
   }
   HUDel.objective.innerHTML = objHTML;
@@ -1562,16 +1548,13 @@ function drawMinimap(){
   const w = 150, h = 150;
   mmCtx.clearRect(0,0,w,h);
   mmCtx.drawImage(minimapImg, 0, 0, w, h);
-
   const sx = w / M.size, sy = h / M.size;
 
   for (const o of M.objectives){
     if (o.type === 'reach' || o.type === 'deliver'){
       mmCtx.strokeStyle = '#a9c47a';
       mmCtx.lineWidth = 1.6;
-      mmCtx.beginPath();
-      mmCtx.arc(o.x*sx, o.y*sy, 6, 0, TAU);
-      mmCtx.stroke();
+      mmCtx.beginPath(); mmCtx.arc(o.x*sx, o.y*sy, 6, 0, TAU); mmCtx.stroke();
     }
     if (o.type === 'waypoints'){
       for (const wp of o.points){
@@ -1629,12 +1612,8 @@ function updateParticles(dt){
     p.life -= dt;
     if (p.life <= 0){ arr.splice(i,1); continue; }
     p.x += p.vx*dt; p.y += p.vy*dt;
-    if (p.type === 'smoke'){
-      p.vx *= 0.97; p.vy *= 0.97;
-      p.size += dt*14;
-    } else {
-      p.vx *= 0.94; p.vy *= 0.94;
-    }
+    if (p.type === 'smoke'){ p.vx *= 0.97; p.vy *= 0.97; p.size += dt*14; }
+    else { p.vx *= 0.94; p.vy *= 0.94; }
   }
 }
 
@@ -1644,12 +1623,8 @@ function fireShell(from, angle, spec, owner){
   const x = from.x + Math.cos(angle)*muzzle;
   const y = from.y + Math.sin(angle)*muzzle;
   const spd = spec.shellSpeed;
-  M.projectiles.push({
-    kind:'shell', x, y,
-    vx: Math.cos(angle)*spd, vy: Math.sin(angle)*spd,
-    life: 2.2, dmg: spec.damage, owner,
-    radius: 4
-  });
+  M.projectiles.push({ kind:'shell', x, y, vx: Math.cos(angle)*spd, vy: Math.sin(angle)*spd,
+    life: 2.2, dmg: spec.damage, owner, radius: 4 });
   from.fireFlash = 0.09;
   from.reload = spec.reloadTime;
   from.ammo--;
@@ -1666,12 +1641,8 @@ function fireShell(from, angle, spec, owner){
 function fireBullet(from, angle, spec, owner){
   const x = from.x + Math.cos(angle)*(from.radius+10);
   const y = from.y + Math.sin(angle)*(from.radius+10);
-  M.projectiles.push({
-    kind:'bullet', x, y,
-    vx: Math.cos(angle)*spec.bulletSpeed,
-    vy: Math.sin(angle)*spec.bulletSpeed,
-    life: 1.4, dmg: spec.dmg, owner, radius: 2
-  });
+  M.projectiles.push({ kind:'bullet', x, y, vx: Math.cos(angle)*spec.bulletSpeed,
+    vy: Math.sin(angle)*spec.bulletSpeed, life: 1.4, dmg: spec.dmg, owner, radius: 2 });
   from.ammo--;
   from.shotsFired++;
   from.fireFlash = 0.05;
@@ -1684,11 +1655,9 @@ function updateProjectiles(dt){
     const s = arr[i];
     s.life -= dt;
     if (s.life <= 0){ arr.splice(i,1); continue; }
-    s.x += s.vx*dt;
-    s.y += s.vy*dt;
+    s.x += s.vx*dt; s.y += s.vy*dt;
 
     let hit = false;
-
     for (const o of M.obstacles){
       if (o.kind === 'circle'){
         if (dist2(s.x,s.y,o.x,o.y) < (o.r+s.radius)*(o.r+s.radius)){ hit = true; break; }
@@ -1702,20 +1671,13 @@ function updateProjectiles(dt){
         for (const e of M.enemies){
           if (!e.alive) continue;
           const rr = e.radius + s.radius + 4;
-          if (dist2(s.x,s.y,e.x,e.y) < rr*rr){
-            damageVehicle(e, s.dmg, s.x, s.y);
-            hit = true;
-            break;
-          }
+          if (dist2(s.x,s.y,e.x,e.y) < rr*rr){ damageVehicle(e, s.dmg, s.x, s.y); hit = true; break; }
         }
       } else {
         const p = M.player;
         if (p.alive){
           const rr = p.radius + s.radius + 2;
-          if (dist2(s.x,s.y,p.x,p.y) < rr*rr){
-            damagePlayer(p, s.dmg, s.x, s.y);
-            hit = true;
-          }
+          if (dist2(s.x,s.y,p.x,p.y) < rr*rr){ damagePlayer(p, s.dmg, s.x, s.y); hit = true; }
         }
       }
     }
@@ -1808,9 +1770,8 @@ function resolveObstacles(v){
       const ny = clamp(v.y, o.y-o.h/2, o.y+o.h/2);
       const d = dist(v.x,v.y,nx,ny);
       if (d < v.radius){
-        if (d < 0.001){
-          v.x = o.x + o.w/2 + v.radius;
-        } else {
+        if (d < 0.001){ v.x = o.x + o.w/2 + v.radius; }
+        else {
           const k = (v.radius - d)/d;
           v.x += (v.x-nx)*k;
           v.y += (v.y-ny)*k;
@@ -1823,58 +1784,36 @@ function resolveObstacles(v){
   v.y = clamp(v.y, v.radius+8, M.size - v.radius - 8);
 }
 
-/* ---------------------------- INPUT HELPERS ---------------------------- */
-function getDriveThrottle(){
-  if (Touch.enabled) return deadzone(-Touch.move.y, 0.14);
-  return (Input.key('KeyW') ? 1 : 0) - (Input.key('KeyS') ? 1 : 0);
-}
-function getSteer(){
-  if (Touch.enabled) return deadzone(Touch.move.x, 0.14);
-  return (Input.key('KeyD') ? 1 : 0) - (Input.key('KeyA') ? 1 : 0);
-}
-function getAirThrottle(){
-  if (Touch.enabled) return (Touch.thrUp ? 1 : 0) - (Touch.thrDn ? 1 : 0);
-  return (Input.key('KeyW') ? 1 : 0) - (Input.key('KeyS') ? 1 : 0);
-}
-function getAirBank(){
-  if (Touch.enabled) return deadzone(Touch.move.x, 0.14);
-  return (Input.key('KeyD') ? 1 : 0) - (Input.key('KeyA') ? 1 : 0);
-}
-function getAirPitch(){
-  if (Touch.enabled) return deadzone(-Touch.move.y, 0.14);
-  return (Input.key('ArrowUp') || Input.key('ShiftLeft') ? 1 : 0)
-       - (Input.key('ArrowDown') || Input.key('ControlLeft') ? 1 : 0);
-}
-function getTankFiring(){
-  if (Touch.enabled) return Math.hypot(Touch.aim.x, Touch.aim.y) > 0.62;
-  return Input.mouse.down || Input.key('Space');
-}
-function getAirFiring(){
-  if (Touch.enabled) return Touch.fire;
-  return Input.mouse.down || Input.key('Space');
-}
-function getAimAngle(p){
-  if (Touch.enabled) return Touch.aimAngle;
-  const mw = screenToWorld(Input.mouse.x, Input.mouse.y);
-  return Math.atan2(mw.y - p.y, mw.x - p.x);
-}
-
 /* ---------------------------- PLAYER UPDATE ---------------------------- */
 function updatePlayer(dt){
   const p = M.player;
   if (!p.alive) return;
-
   if (p.kind === 'tank') updateTankPlayer(dt, p);
   else if (p.kind === 'truck') updateTruckPlayer(dt, p);
   else if (p.kind === 'aircraft') updateAircraftPlayer(dt, p);
-
   if (p.fireFlash > 0) p.fireFlash -= dt;
   if (p.hitFlash > 0) p.hitFlash -= dt;
 }
 
+/* Helper: aim angle (mobile auto-aim) */
+function playerAimAngle(p){
+  if (mode === 'mobile'){
+    let nearest = null, nd = 1e9;
+    for (const e of M.enemies){
+      if (!e.alive) continue;
+      const d = dist2(p.x, p.y, e.x, e.y);
+      if (d < nd){ nd = d; nearest = e; }
+    }
+    if (nearest) return Math.atan2(nearest.y - p.y, nearest.x - p.x);
+    return p.turret;
+  }
+  const mw = screenToWorld(Input.mouse.x, Input.mouse.y);
+  return Math.atan2(mw.y - p.y, mw.x - p.x);
+}
+
 function updateTankPlayer(dt, p){
-  const throttleIn = getDriveThrottle();
-  const steerIn    = getSteer();
+  const throttleIn = (Input.key('KeyW') ? 1 : 0) - (Input.key('KeyS') ? 1 : 0);
+  const steerIn    = (Input.key('KeyD') ? 1 : 0) - (Input.key('KeyA') ? 1 : 0);
 
   const terr = terrainAt(p.x, p.y);
   const terrMul = terr === 'road' ? 1.12 : (terr === 'rough' ? 0.66 : 1.0);
@@ -1896,7 +1835,7 @@ function updateTankPlayer(dt, p){
 
   resolveObstacles(p);
 
-  const targetAng = getAimAngle(p);
+  const targetAng = playerAimAngle(p);
   const turMul = 0.3 + 0.7 * (p.turretHp/100);
   const maxTurn = p.spec.turretSpeed * turMul * dt;
   const d = angDiff(p.turret, targetAng);
@@ -1904,9 +1843,9 @@ function updateTankPlayer(dt, p){
 
   if (p.reload > 0) p.reload -= dt;
 
-  const aimTol = Touch.enabled ? 0.14 : 0.09;
-  if (getTankFiring() && p.reload <= 0 && p.ammo > 0){
-    if (Math.abs(angDiff(p.turret, targetAng)) < aimTol){
+  const alignTol = mode === 'mobile' ? 0.13 : 0.09;
+  if ((Input.mouse.down || Input.key('Space')) && p.reload <= 0 && p.ammo > 0){
+    if (Math.abs(angDiff(p.turret, targetAng)) < alignTol){
       fireShell(p, p.turret, p.spec, 'player');
     }
   }
@@ -1915,20 +1854,18 @@ function updateTankPlayer(dt, p){
   if (Math.abs(p.speed) > 25 && p.trailTimer <= 0){
     p.trailTimer = 0.09;
     const back = p.angle + Math.PI;
-    addParticle(
-      p.x + Math.cos(back)*(p.radius*0.8) + rand(-8,8),
+    addParticle(p.x + Math.cos(back)*(p.radius*0.8) + rand(-8,8),
       p.y + Math.sin(back)*(p.radius*0.8) + rand(-8,8),
       rand(-8,8), rand(-8,8), rand(0.6,1.3), rand(6,13),
-      'rgba(120,112,92,0.35)', 'smoke'
-    );
+      'rgba(120,112,92,0.35)', 'smoke');
   }
 
   Sound.engineSet(Math.abs(p.speed)/p.spec.maxSpeed, 0);
 }
 
 function updateTruckPlayer(dt, p){
-  const throttleIn = getDriveThrottle();
-  const steerIn    = getSteer();
+  const throttleIn = (Input.key('KeyW') ? 1 : 0) - (Input.key('KeyS') ? 1 : 0);
+  const steerIn    = (Input.key('KeyD') ? 1 : 0) - (Input.key('KeyA') ? 1 : 0);
 
   const terr = terrainAt(p.x, p.y);
   const terrMul = terr === 'road' ? 1.22 : (terr === 'rough' ? 0.68 : 1.0);
@@ -1962,19 +1899,26 @@ function updateTruckPlayer(dt, p){
 }
 
 function updateAircraftPlayer(dt, p){
-  const throttleIn = getAirThrottle();
-  p.throttle = clamp(p.throttle + throttleIn * dt * 0.85, 0, 1);
+  const throttleIn = (Input.key('KeyW') ? 1 : 0) - (Input.key('KeyS') ? 1 : 0);
+
+  if (mode === 'mobile'){
+    // Auto-throttle for mobile — keeps flying hands-free while banking/pitching
+    p.throttle = lerp(p.throttle, 0.72, dt * 2.0);
+  } else {
+    p.throttle = clamp(p.throttle + throttleIn * dt * 0.85, 0, 1);
+  }
 
   const fuelRatio = p.fuel > 0 ? 1 : 0;
   const targetSpeed = p.throttle * p.spec.maxSpeed * (0.3 + 0.7*fuelRatio) * (0.5 + 0.5*(p.engine/100));
   p.speed = lerp(p.speed, targetSpeed, 1 - Math.pow(0.15, dt));
 
-  const bankIn = getAirBank();
+  const bankIn = (Input.key('KeyD') ? 1 : 0) - (Input.key('KeyA') ? 1 : 0);
   p.bank = lerp(p.bank, bankIn, dt*3.5);
   const spdRatio = clamp(p.speed / p.spec.maxSpeed, 0.15, 1);
   p.angle += p.bank * p.spec.turnRate * spdRatio * dt;
 
-  const pitchIn = getAirPitch();
+  const pitchIn = (Input.key('ArrowUp') || Input.key('ShiftLeft') ? 1 : 0)
+                - (Input.key('ArrowDown') || Input.key('ControlLeft') ? 1 : 0);
   p.pitch = lerp(p.pitch, pitchIn, dt*3);
   p.alt += p.pitch * 330 * dt;
   p.alt = clamp(p.alt, 0, 2600);
@@ -1994,12 +1938,10 @@ function updateAircraftPlayer(dt, p){
     explosion(p.x, p.y, 1.6);
     setTimeout(()=>{ if (M && M.status === 'active') endMission(false, 'AIRCRAFT CRASHED'); }, 600);
   }
-  if (p.fuel <= 0 && p.speed < 60 && p.alt > 0){
-    p.alt -= 120*dt;
-  }
+  if (p.fuel <= 0 && p.speed < 60 && p.alt > 0) p.alt -= 120*dt;
 
   if (p.gunTimer > 0) p.gunTimer -= dt;
-  if (getAirFiring() && p.gunTimer <= 0 && p.ammo > 0){
+  if ((Input.mouse.down || Input.key('Space')) && p.gunTimer <= 0 && p.ammo > 0){
     fireBullet(p, p.angle + rand(-0.02,0.02), p.spec, 'player');
     p.gunTimer = p.spec.gunRate;
   }
@@ -2010,12 +1952,10 @@ function updateAircraftPlayer(dt, p){
 /* ---------------------------- ENEMY AI ---------------------------- */
 function updateEnemies(dt){
   const p = M.player;
-
   for (const e of M.enemies){
     if (!e.alive) continue;
     if (e.hitFlash > 0) e.hitFlash -= dt;
     if (e.fireFlash > 0) e.fireFlash -= dt;
-
     if (e.kind === 'aircraft') updateEnemyAircraft(dt, e, p);
     else updateEnemyTank(dt, e, p);
   }
@@ -2061,27 +2001,21 @@ function updateEnemyTank(dt, e, p){
     if (!p.alive || d > 1200) ai.state = 'idle';
     else if (d < 420) ai.state = 'attack';
     else {
-      const desired = targetAngle;
-      e.angle = lerpAngle(e.angle, desired, dt*1.4);
-      const maxSpd = e.spec.maxSpeed * 0.85;
-      e.speed = lerp(e.speed, maxSpd, dt*1.2);
+      e.angle = lerpAngle(e.angle, targetAngle, dt*1.4);
+      e.speed = lerp(e.speed, e.spec.maxSpeed*0.85, dt*1.2);
       e.turret = lerpAngle(e.turret, targetAngle, dt*1.0);
     }
   }
   else if (ai.state === 'attack'){
-    if (!p.alive) { ai.state = 'idle'; }
+    if (!p.alive) ai.state = 'idle';
     else if (d > 560) ai.state = 'pursue';
     else {
       e.speed = lerp(e.speed, 0, dt*3);
       ai.retarget -= dt;
-      if (ai.retarget <= 0){
-        ai.retarget = rand(1.2, 2.2);
-        ai.aimErr = rand(-0.14, 0.14);
-      }
+      if (ai.retarget <= 0){ ai.retarget = rand(1.2, 2.2); ai.aimErr = rand(-0.14, 0.14); }
       const aim = targetAngle + (ai.aimErr || 0);
       const maxTurn = e.spec.turretSpeed * dt;
-      const diff = angDiff(e.turret, aim);
-      e.turret += clamp(diff, -maxTurn, maxTurn);
+      e.turret += clamp(angDiff(e.turret, aim), -maxTurn, maxTurn);
     }
   }
 
@@ -2091,8 +2025,7 @@ function updateEnemyTank(dt, e, p){
 
   if (e.reload > 0) e.reload -= dt;
   if (e.reload <= 0 && p.alive && d < 820 && Math.abs(angDiff(e.turret, targetAngle)) < 0.10){
-    const spread = rand(-0.045, 0.045);
-    fireShell(e, e.turret + spread, e.spec, 'enemy');
+    fireShell(e, e.turret + rand(-0.045, 0.045), e.spec, 'enemy');
     e.reload = e.spec.reloadTime * rand(0.95, 1.35);
   }
 
@@ -2146,37 +2079,24 @@ function updateCamera(dt){
   const k = 1 - Math.pow(0.0015, dt);
   cam.x = lerp(cam.x, tx, k);
   cam.y = lerp(cam.y, ty, k);
-
-  if (cam.shake > 0){
-    cam.shake = Math.max(0, cam.shake - dt*28);
-  }
+  if (cam.shake > 0) cam.shake = Math.max(0, cam.shake - dt*28);
 }
 
 function screenToWorld(sx, sy){
-  return {
-    x: (sx - VW/2) / cam.zoom + cam.x,
-    y: (sy - VH/2) / cam.zoom + cam.y
-  };
+  return { x: (sx - VW/2) / cam.zoom + cam.x, y: (sy - VH/2) / cam.zoom + cam.y };
 }
 
 /* ---------------------------- OBJECTIVES / END ---------------------------- */
 function checkObjectives(dt){
   let allDone = true;
-
   for (const o of M.objectives){
-    if (o.type === 'destroy'){
-      o.got = M.kills;
-      if (o.got < o.need) allDone = false;
-    }
+    if (o.type === 'destroy'){ o.got = M.kills; if (o.got < o.need) allDone = false; }
     else if (o.type === 'reach' || o.type === 'deliver'){
       const p = M.player;
       if (!o.got && dist(p.x, p.y, o.x, o.y) < o.r) o.got = 1;
       if (!o.got) allDone = false;
     }
-    else if (o.type === 'survive'){
-      o.got = M.elapsed;
-      if (M.elapsed < o.need) allDone = false;
-    }
+    else if (o.type === 'survive'){ o.got = M.elapsed; if (M.elapsed < o.need) allDone = false; }
     else if (o.type === 'waypoints'){
       const p = M.player;
       let n = 0;
@@ -2191,20 +2111,16 @@ function checkObjectives(dt){
       o.got = n;
       if (n < o.points.length) allDone = false;
     }
-    else if (o.type === 'training'){
-      allDone = false;
-    }
+    else if (o.type === 'training'){ allDone = false; }
   }
-
-  if (allDone && M.objectives.length > 0 && M.status === 'active'){
-    endMission(true, 'ALL OBJECTIVES COMPLETE');
-  }
+  if (allDone && M.objectives.length > 0 && M.status === 'active') endMission(true, 'ALL OBJECTIVES COMPLETE');
 }
 
 function endMission(success, reason){
   if (!M || M.status !== 'active') return;
   M.status = success ? 'success' : 'failed';
   Sound.engineStop();
+  if (VJoy.reset) VJoy.reset();
 
   let rank = '—';
   if (success){
@@ -2214,39 +2130,29 @@ function endMission(success, reason){
     else if (hull > 0.65) rank = 'A';
     else if (hull > 0.40) rank = 'B';
     else rank = 'C';
-
     if (!Game.isTraining){
       Save.setRating(M.index, rank);
       Save.unlock(M.index + 2);
     }
   }
-
   showResults(success, reason, rank);
 }
 
 /* ---------------------------- UPDATE LOOP ---------------------------- */
 function update(dt){
   if (!M || M.status !== 'active') return;
-
   M.elapsed += dt;
-
   if (M.timer > 0){
     M.timer -= dt;
-    if (M.timer <= 0){
-      endMission(false, 'TIME EXPIRED');
-      return;
-    }
+    if (M.timer <= 0){ endMission(false, 'TIME EXPIRED'); return; }
   }
-
   updatePlayer(dt);
   updateEnemies(dt);
   updateProjectiles(dt);
   updateParticles(dt);
   updateCamera(dt);
   checkObjectives(dt);
-
   if (Game.flash > 0) Game.flash = Math.max(0, Game.flash - dt*2.2);
-
   updateHUD();
 }
 
@@ -2272,16 +2178,12 @@ function render(){
   ctx.translate(-cam.x, -cam.y);
 
   ctx.drawImage(M.map.terrain, 0, 0);
-
   drawObjectiveMarkers(ctx);
 
   ctx.save();
   ctx.fillStyle = 'rgba(0,0,0,0.32)';
   const shadowOffset = 9;
-  for (const e of M.enemies){
-    if (!e.alive) continue;
-    drawEntityShadow(ctx, e, shadowOffset);
-  }
+  for (const e of M.enemies){ if (e.alive) drawEntityShadow(ctx, e, shadowOffset); }
   if (M.player.alive) drawEntityShadow(ctx, M.player, shadowOffset);
   ctx.restore();
 
@@ -2298,7 +2200,6 @@ function render(){
 
   drawProjectiles(ctx);
   drawParticles(ctx);
-
   ctx.restore();
 
   if (Game.flash > 0){
@@ -2312,7 +2213,7 @@ function render(){
   ctx.fillStyle = grad;
   ctx.fillRect(0,0,VW,VH);
 
-  if (Game.state === 'playing') drawCrosshair();
+  if (Game.state === 'playing' && mode !== 'mobile') drawCrosshair();
 }
 
 function drawMenuBackdrop(){
@@ -2323,7 +2224,6 @@ function drawMenuBackdrop(){
   g.addColorStop(1, '#080a06');
   ctx.fillStyle = g;
   ctx.fillRect(0,0,VW,VH);
-
   for (let i=0;i<7;i++){
     const x = (Math.sin(menuT + i*1.7) * 0.5 + 0.5) * VW;
     const y = (Math.cos(menuT*0.8 + i*2.3) * 0.5 + 0.5) * VH;
@@ -2332,15 +2232,12 @@ function drawMenuBackdrop(){
     rg.addColorStop(0, 'rgba(90,107,61,0.055)');
     rg.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = rg;
-    ctx.beginPath();
-    ctx.arc(x,y,r,0,TAU);
-    ctx.fill();
+    ctx.beginPath(); ctx.arc(x,y,r,0,TAU); ctx.fill();
   }
 }
 
 function drawObjectiveMarkers(g){
   const pulse = 0.55 + 0.45*Math.sin(M.elapsed*2.6);
-
   for (const o of M.objectives){
     if (o.type === 'reach' || o.type === 'deliver'){
       if (o.got) continue;
@@ -2354,11 +2251,8 @@ function drawObjectiveMarkers(g){
       g.beginPath(); g.arc(o.x, o.y, o.r, 0, TAU); g.fill();
       g.fillStyle = 'rgba(201,185,138,' + (0.35 + pulse*0.4) + ')';
       g.beginPath();
-      g.moveTo(o.x, o.y - 46);
-      g.lineTo(o.x - 12, o.y - 24);
-      g.lineTo(o.x + 12, o.y - 24);
-      g.closePath();
-      g.fill();
+      g.moveTo(o.x, o.y - 46); g.lineTo(o.x - 12, o.y - 24); g.lineTo(o.x + 12, o.y - 24);
+      g.closePath(); g.fill();
       g.restore();
     }
     else if (o.type === 'waypoints'){
@@ -2398,75 +2292,53 @@ function drawEntityShadow(g, v, off){
 }
 
 function drawTank(g, t, isPlayer){
-  const s = t.spec;
-  const L = s.len, W = s.wid;
-
+  const s = t.spec, L = s.len, W = s.wid;
   g.save();
   g.translate(t.x, t.y);
 
   g.save();
   g.rotate(t.angle);
-
   g.fillStyle = '#1e2118';
   rrect(g, -L/2, -W/2 - 5, L, 10, 3); g.fill();
   rrect(g, -L/2,  W/2 - 5, L, 10, 3); g.fill();
-
   g.strokeStyle = 'rgba(0,0,0,.45)';
   g.lineWidth = 1.5;
   for (let i=-L/2+5; i<L/2; i+=8){
     g.beginPath(); g.moveTo(i, -W/2-5); g.lineTo(i, -W/2+5); g.stroke();
     g.beginPath(); g.moveTo(i,  W/2-5); g.lineTo(i,  W/2+5); g.stroke();
   }
-
   let hullCol = isPlayer ? '#5c6b3a' : '#5a4a36';
   if (t.hitFlash > 0) hullCol = '#b06a3a';
   g.fillStyle = hullCol;
-  rrect(g, -L/2 + 2, -W/2, L - 4, W, 5);
-  g.fill();
-
+  rrect(g, -L/2 + 2, -W/2, L - 4, W, 5); g.fill();
   g.fillStyle = 'rgba(255,255,255,0.07)';
   rrect(g, -L/2+4, -W/2+2, L-8, W*0.34, 4); g.fill();
   g.fillStyle = 'rgba(0,0,0,0.20)';
   rrect(g, -L/2+4, W/2 - W*0.3, L-8, W*0.26, 4); g.fill();
-
   g.fillStyle = 'rgba(0,0,0,0.28)';
   g.fillRect(L/2 - 9, -W/2+2, 7, W-4);
-
   g.fillStyle = 'rgba(0,0,0,0.18)';
   g.fillRect(-L/2 + 6, -W/2 + 4, 10, 6);
   g.fillRect(-L/2 + 6,  W/2 - 10, 10, 6);
-
   g.restore();
 
   g.save();
   g.rotate(t.turret);
-
   const barrelLen = L * 0.78;
   g.fillStyle = '#2f3624';
   g.fillRect(6, -2.8, barrelLen, 5.6);
   g.fillStyle = 'rgba(255,255,255,0.10)';
   g.fillRect(6, -2.8, barrelLen, 1.6);
-
   g.fillStyle = '#46512c';
   rrect(g, 2, -7, 12, 14, 3); g.fill();
-
   let turCol = isPlayer ? '#4d5a30' : '#4a3d2b';
   if (t.hitFlash > 0) turCol = '#a05e34';
   g.fillStyle = turCol;
-  g.beginPath();
-  g.arc(0, 0, W*0.42, 0, TAU);
-  g.fill();
-
+  g.beginPath(); g.arc(0, 0, W*0.42, 0, TAU); g.fill();
   g.fillStyle = 'rgba(255,255,255,0.09)';
-  g.beginPath();
-  g.arc(-2, -3, W*0.30, 0, TAU);
-  g.fill();
-
+  g.beginPath(); g.arc(-2, -3, W*0.30, 0, TAU); g.fill();
   g.fillStyle = 'rgba(0,0,0,0.32)';
-  g.beginPath();
-  g.arc(-4, 0, W*0.16, 0, TAU);
-  g.fill();
-
+  g.beginPath(); g.arc(-4, 0, W*0.16, 0, TAU); g.fill();
   if (t.fireFlash > 0){
     const f = t.fireFlash / 0.09;
     g.globalAlpha = f;
@@ -2475,12 +2347,9 @@ function drawTank(g, t, isPlayer){
     fg.addColorStop(0.5, 'rgba(255,160,60,0.55)');
     fg.addColorStop(1, 'rgba(255,120,40,0)');
     g.fillStyle = fg;
-    g.beginPath();
-    g.arc(barrelLen+8, 0, 30, 0, TAU);
-    g.fill();
+    g.beginPath(); g.arc(barrelLen+8, 0, 30, 0, TAU); g.fill();
     g.globalAlpha = 1;
   }
-
   g.restore();
   g.restore();
 
@@ -2488,11 +2357,8 @@ function drawTank(g, t, isPlayer){
     g.save();
     g.translate(t.x, t.y - s.radius - 20);
     g.fillStyle = 'rgba(200,70,45,0.9)';
-    g.beginPath();
-    g.moveTo(0, 0); g.lineTo(-7, -10); g.lineTo(7, -10);
-    g.closePath(); g.fill();
+    g.beginPath(); g.moveTo(0, 0); g.lineTo(-7, -10); g.lineTo(7, -10); g.closePath(); g.fill();
     g.restore();
-
     const hp = clamp(t.hp/t.maxHp, 0, 1);
     g.fillStyle = 'rgba(0,0,0,0.6)';
     g.fillRect(t.x - 20, t.y - s.radius - 36, 40, 4);
@@ -2502,118 +2368,80 @@ function drawTank(g, t, isPlayer){
 }
 
 function drawTruck(g, t){
-  const s = t.spec;
-  const L = s.len, W = s.wid;
-
+  const s = t.spec, L = s.len, W = s.wid;
   g.save();
   g.translate(t.x, t.y);
   g.rotate(t.angle);
-
   g.fillStyle = '#1c1e18';
   g.fillRect(-L/2 + 4, -W/2 - 4, 12, 8);
   g.fillRect(-L/2 + 4,  W/2 - 4, 12, 8);
   g.fillRect( L/2 - 16, -W/2 - 4, 12, 8);
   g.fillRect( L/2 - 16,  W/2 - 4, 12, 8);
-
   let col = '#5b5a3e';
   if (t.hitFlash > 0) col = '#b06a3a';
   g.fillStyle = col;
   rrect(g, -L/2, -W/2, L*0.36, W, 4); g.fill();
-
   g.fillStyle = '#4a4a33';
   rrect(g, -L/2 + L*0.38, -W/2, L*0.60, W, 3); g.fill();
-
   g.strokeStyle = 'rgba(0,0,0,0.35)';
   g.lineWidth = 1.5;
   for (let i=1;i<5;i++){
     const x = -L/2 + L*0.38 + (L*0.60)*i/5;
     g.beginPath(); g.moveTo(x, -W/2+2); g.lineTo(x, W/2-2); g.stroke();
   }
-
   g.fillStyle = 'rgba(140,170,180,0.45)';
   g.fillRect(L/2 - L*0.20, -W/2 + 4, 6, W - 8);
-
   g.fillStyle = 'rgba(255,255,255,0.07)';
   g.fillRect(-L/2+2, -W/2+2, L-4, 5);
-
   g.restore();
 }
 
 function drawAircraft(g, a, isPlayer){
   const R = a.radius;
   const scale = 1 + a.alt/5200;
-
   g.save();
   g.translate(a.x, a.y);
   g.rotate(a.angle);
   g.scale(scale, scale);
-
   let col = isPlayer ? '#5f6f42' : '#6b4436';
   if (a.hitFlash > 0) col = '#c07a4a';
-
   g.fillStyle = col;
   g.beginPath();
   g.moveTo(0, 0);
-  g.lineTo(-R*0.35, -R*1.5);
-  g.lineTo(-R*0.85, -R*1.5);
+  g.lineTo(-R*0.35, -R*1.5); g.lineTo(-R*0.85, -R*1.5);
   g.lineTo(-R*0.55, 0);
-  g.lineTo(-R*0.85,  R*1.5);
-  g.lineTo(-R*0.35,  R*1.5);
-  g.closePath();
-  g.fill();
-
+  g.lineTo(-R*0.85,  R*1.5); g.lineTo(-R*0.35,  R*1.5);
+  g.closePath(); g.fill();
   g.fillStyle = col;
-  g.beginPath();
-  g.ellipse(0, 0, R*1.05, R*0.30, 0, 0, TAU);
-  g.fill();
-
+  g.beginPath(); g.ellipse(0, 0, R*1.05, R*0.30, 0, 0, TAU); g.fill();
   g.fillStyle = 'rgba(0,0,0,0.35)';
   g.beginPath();
   g.moveTo(-R*0.85, 0);
-  g.lineTo(-R*1.15, -R*0.55);
-  g.lineTo(-R*1.35, -R*0.55);
+  g.lineTo(-R*1.15, -R*0.55); g.lineTo(-R*1.35, -R*0.55);
   g.lineTo(-R*1.15, 0);
-  g.lineTo(-R*1.35,  R*0.55);
-  g.lineTo(-R*1.15,  R*0.55);
-  g.closePath();
-  g.fill();
-
+  g.lineTo(-R*1.35,  R*0.55); g.lineTo(-R*1.15,  R*0.55);
+  g.closePath(); g.fill();
   g.fillStyle = 'rgba(150,190,200,0.55)';
-  g.beginPath();
-  g.ellipse(R*0.18, 0, R*0.26, R*0.16, 0, 0, TAU);
-  g.fill();
-
+  g.beginPath(); g.ellipse(R*0.18, 0, R*0.26, R*0.16, 0, 0, TAU); g.fill();
   if (a.fireFlash > 0){
     g.fillStyle = 'rgba(255,225,150,' + (a.fireFlash/0.05) + ')';
-    g.beginPath();
-    g.arc(R*1.05, 0, R*0.3, 0, TAU);
-    g.fill();
+    g.beginPath(); g.arc(R*1.05, 0, R*0.3, 0, TAU); g.fill();
   }
-
   g.fillStyle = 'rgba(255,180,80,0.25)';
-  g.beginPath();
-  g.arc(-R*0.6, 0, R*0.14, 0, TAU);
-  g.fill();
-
+  g.beginPath(); g.arc(-R*0.6, 0, R*0.14, 0, TAU); g.fill();
   g.restore();
 
   if (a.speed > 100 && Math.random() < 0.55){
     const back = a.angle + Math.PI;
-    addParticle(
-      a.x + Math.cos(back)*R*1.1,
-      a.y + Math.sin(back)*R*1.1,
-      rand(-5,5), rand(-5,5), rand(0.7,1.5), rand(4,10),
-      'rgba(210,215,205,0.22)', 'smoke'
-    );
+    addParticle(a.x + Math.cos(back)*R*1.1, a.y + Math.sin(back)*R*1.1,
+      rand(-5,5), rand(-5,5), rand(0.7,1.5), rand(4,10), 'rgba(210,215,205,0.22)', 'smoke');
   }
 
   if (a.isEnemy){
     g.save();
     g.translate(a.x, a.y - R - 22);
     g.fillStyle = 'rgba(200,70,45,0.9)';
-    g.beginPath();
-    g.moveTo(0,0); g.lineTo(-7,-10); g.lineTo(7,-10);
-    g.closePath(); g.fill();
+    g.beginPath(); g.moveTo(0,0); g.lineTo(-7,-10); g.lineTo(7,-10); g.closePath(); g.fill();
     g.restore();
   }
 }
@@ -2633,15 +2461,10 @@ function drawProjectiles(g){
       g.restore();
     } else {
       g.fillStyle = 'rgba(255,235,170,0.95)';
-      g.beginPath();
-      g.arc(s.x, s.y, 2.2, 0, TAU);
-      g.fill();
+      g.beginPath(); g.arc(s.x, s.y, 2.2, 0, TAU); g.fill();
       g.strokeStyle = 'rgba(255,200,100,0.4)';
       g.lineWidth = 1.5;
-      g.beginPath();
-      g.moveTo(s.x, s.y);
-      g.lineTo(s.x - s.vx*0.012, s.y - s.vy*0.012);
-      g.stroke();
+      g.beginPath(); g.moveTo(s.x, s.y); g.lineTo(s.x - s.vx*0.012, s.y - s.vy*0.012); g.stroke();
     }
   }
 }
@@ -2652,26 +2475,24 @@ function drawParticles(g){
     if (p.type === 'smoke'){
       g.globalAlpha = t * 0.75;
       g.fillStyle = p.color;
-      g.beginPath();
-      g.arc(p.x, p.y, p.size * (1.4 - t*0.5), 0, TAU);
-      g.fill();
+      g.beginPath(); g.arc(p.x, p.y, p.size * (1.4 - t*0.5), 0, TAU); g.fill();
     } else {
       g.globalAlpha = t;
       g.fillStyle = p.color;
-      g.beginPath();
-      g.arc(p.x, p.y, p.size * t, 0, TAU);
-      g.fill();
+      g.beginPath(); g.arc(p.x, p.y, p.size * t, 0, TAU); g.fill();
     }
   }
   g.globalAlpha = 1;
 }
 
-function drawReticle(x, y, ready){
+function drawCrosshair(){
+  const x = Input.mouse.x, y = Input.mouse.y;
+  const p = M.player;
+  const ready = (p.kind === 'tank') ? p.reload <= 0 : true;
   ctx.save();
   ctx.translate(x, y);
   ctx.strokeStyle = ready ? 'rgba(201,185,138,0.9)' : 'rgba(180,90,60,0.75)';
   ctx.lineWidth = 1.6;
-
   const r = 13, gap = 5;
   ctx.beginPath();
   ctx.moveTo(-r,0); ctx.lineTo(-gap,0);
@@ -2679,47 +2500,18 @@ function drawReticle(x, y, ready){
   ctx.moveTo(0,-r); ctx.lineTo(0,-gap);
   ctx.moveTo(0,gap); ctx.lineTo(0,r);
   ctx.stroke();
-
-  ctx.beginPath();
-  ctx.arc(0,0, 2, 0, TAU);
+  ctx.beginPath(); ctx.arc(0,0, 2, 0, TAU);
   ctx.fillStyle = ready ? 'rgba(201,185,138,0.9)' : 'rgba(180,90,60,0.8)';
   ctx.fill();
-
   ctx.globalAlpha = 0.35;
-  ctx.beginPath();
-  ctx.arc(0,0, 20, 0, TAU);
-  ctx.stroke();
+  ctx.beginPath(); ctx.arc(0,0, 20, 0, TAU); ctx.stroke();
   ctx.restore();
-}
-
-function drawCrosshair(){
-  if (!M) return;
-  const p = M.player;
-
-  if (Touch.enabled){
-    // Aim reticle projected in the turret / nose direction
-    if (p.kind === 'tank' && p.alive){
-      const wx = p.x + Math.cos(Touch.aimAngle) * 240;
-      const wy = p.y + Math.sin(Touch.aimAngle) * 240;
-      const sx = (wx - cam.x) * cam.zoom + VW/2;
-      const sy = (wy - cam.y) * cam.zoom + VH/2;
-      drawReticle(sx, sy, p.reload <= 0);
-    }
-    return;
-  }
-
-  const ready = (p.kind === 'tank') ? p.reload <= 0 : true;
-  drawReticle(Input.mouse.x, Input.mouse.y, ready);
 }
 
 /* ---------------------------- MAIN LOOP ---------------------------- */
 let lastTs = 0;
 let accumulator = 0;
 const STEP = 1/60;
-
-function isPortraitBlocked(){
-  return Platform.isMobile && window.innerHeight > window.innerWidth;
-}
 
 function loop(ts){
   requestAnimationFrame(loop);
@@ -2728,7 +2520,7 @@ function loop(ts){
   lastTs = ts;
   if (dt > 0.1) dt = 0.1;
 
-  if (Game.state === 'playing' && M && M.status === 'active' && !isPortraitBlocked()){
+  if (Game.state === 'playing' && M && M.status === 'active'){
     accumulator += dt;
     let guard = 0;
     while (accumulator >= STEP && guard++ < 6){
@@ -2736,14 +2528,12 @@ function loop(ts){
       accumulator -= STEP;
     }
   }
-
   render();
 }
 requestAnimationFrame(loop);
 
 /* ---------------------------- SCREEN MANAGEMENT ---------------------------- */
 const SCREENS = {
-  platform: document.getElementById('screenPlatform'),
   menu: document.getElementById('screenMenu'),
   missions: document.getElementById('screenMissions'),
   vehicles: document.getElementById('screenVehicles'),
@@ -2756,29 +2546,11 @@ function hideAllScreens(){
   for (const k in SCREENS) SCREENS[k].classList.add('hidden');
   document.getElementById('hud').classList.remove('on');
   document.getElementById('vignette').classList.remove('on');
-  document.getElementById('touchControls').classList.remove('on');
 }
 
 function showScreen(name){
   hideAllScreens();
   if (SCREENS[name]) SCREENS[name].classList.remove('hidden');
-}
-
-/* ---------------------------- PLATFORM APPLY ---------------------------- */
-function applyPlatform(){
-  const mobile = Platform.isMobile;
-  document.body.classList.toggle('mobile', mobile);
-  Touch.enabled = mobile;
-  Touch.reset();
-
-  document.getElementById('rotateOverlay').classList.toggle('show', mobile);
-
-  const btn = document.getElementById('btnPlatform');
-  if (btn) btn.textContent = 'PLATFORM: ' + (mobile ? 'MOBILE' : 'DESKTOP');
-
-  if (!mobile){
-    document.getElementById('touchControls').classList.remove('on');
-  }
 }
 
 /* ---------------------------- MISSION LIST UI ---------------------------- */
@@ -2816,10 +2588,7 @@ function buildMissionList(){
       `;
 
       if (unlocked){
-        row.addEventListener('click', ()=>{
-          Sound.init(); Sound.resume(); Sound.ui();
-          startMission(def, i, false);
-        });
+        row.addEventListener('click', ()=>{ Sound.init(); Sound.resume(); Sound.ui(); startMission(def, i, false); });
       }
       wrap.appendChild(row);
     }
@@ -2841,10 +2610,7 @@ function buildMissionList(){
     </div>
     <div class="m-rating">—</div>
   `;
-  row.addEventListener('click', ()=>{
-    Sound.init(); Sound.resume(); Sound.ui();
-    startMission(TRAINING_DEF, -1, true);
-  });
+  row.addEventListener('click', ()=>{ Sound.init(); Sound.resume(); Sound.ui(); startMission(TRAINING_DEF, -1, true); });
   wrap.appendChild(row);
 }
 
@@ -2899,7 +2665,7 @@ function showResults(success, reason, rank){
   Game.state = 'results';
   document.getElementById('hud').classList.remove('on');
   document.getElementById('vignette').classList.remove('on');
-  document.getElementById('touchControls').classList.remove('on');
+  if (VJoy.reset) VJoy.reset();
 
   const title = document.getElementById('resTitle');
   title.textContent = success ? 'MISSION COMPLETE' : 'MISSION FAILED';
@@ -2927,6 +2693,7 @@ function togglePause(){
     Game.state = 'paused';
     SCREENS.pause.classList.remove('hidden');
     Sound.engineSet(0, 0);
+    if (VJoy.reset) VJoy.reset();
   } else if (Game.state === 'paused'){
     Game.state = 'playing';
     SCREENS.pause.classList.add('hidden');
@@ -2942,50 +2709,17 @@ document.addEventListener('click', (e)=>{
   Sound.init(); Sound.resume(); Sound.ui();
 
   switch(act){
-    case 'pickDesktop':
-      Platform.set('desktop');
-      applyPlatform();
-      Game.state = 'menu';
-      showScreen('menu');
-      break;
-
-    case 'pickMobile':
-      Platform.set('mobile');
-      applyPlatform();
-      Game.state = 'menu';
-      showScreen('menu');
-      break;
-
-    case 'switchPlatform':
-      Platform.set(null);
-      applyPlatform();
-      Game.state = 'menu';
-      showScreen('platform');
-      break;
-
     case 'campaign':
-      Game.state = 'missions';
-      buildMissionList();
-      showScreen('missions');
-      break;
-
+      Game.state = 'missions'; buildMissionList(); showScreen('missions'); break;
     case 'training':
-      startMission(TRAINING_DEF, -1, true);
-      break;
-
+      startMission(TRAINING_DEF, -1, true); break;
     case 'vehicles':
-      Game.state = 'vehicles';
-      buildVehicleGrid();
-      showScreen('vehicles');
-      break;
-
+      Game.state = 'vehicles'; buildVehicleGrid(); showScreen('vehicles'); break;
     case 'settings':
       Game.state = 'settings';
       document.getElementById('btnSound').textContent = 'SOUND: ' + (Sound.muted ? 'OFF' : 'ON');
-      document.getElementById('btnPlatform').textContent = 'PLATFORM: ' + (Platform.isMobile ? 'MOBILE' : 'DESKTOP');
       showScreen('settings');
       break;
-
     case 'toggleSound':
       Sound.muted = !Sound.muted;
       Save.data.sound = !Sound.muted;
@@ -2993,30 +2727,31 @@ document.addEventListener('click', (e)=>{
       if (Sound.muted) Sound.engineStop();
       document.getElementById('btnSound').textContent = 'SOUND: ' + (Sound.muted ? 'OFF' : 'ON');
       break;
-
     case 'resetProgress':
       if (confirm('Reset all campaign progress? This cannot be undone.')){
         Save.reset();
         alert('Campaign progress reset.');
       }
       break;
-
+    case 'switchMode':
+      if (Game.state === 'playing' || Game.state === 'paused'){
+        Sound.engineStop();
+        M = null;
+      }
+      Game.state = 'menu';
+      mode = null;
+      document.body.classList.remove('mode-mobile');
+      hideAllScreens();
+      document.getElementById('screenDevicePick').classList.remove('hidden');
+      break;
     case 'back':
-      Game.state = 'menu';
-      showScreen('menu');
-      break;
-
+      Game.state = 'menu'; showScreen('menu'); break;
     case 'toMenu':
-      Game.state = 'menu';
-      M = null;
-      Sound.engineStop();
+      Game.state = 'menu'; M = null; Sound.engineStop();
+      if (VJoy.reset) VJoy.reset();
       showScreen('menu');
       break;
-
-    case 'resume':
-      togglePause();
-      break;
-
+    case 'resume': togglePause(); break;
     case 'retry': {
       const def = Game.isTraining ? TRAINING_DEF : MISSION_DEFS[Game.missionIndex];
       const idx = Game.missionIndex;
@@ -3026,7 +2761,6 @@ document.addEventListener('click', (e)=>{
       startMission(def, idx, tr);
       break;
     }
-
     case 'next': {
       const nextIdx = Game.missionIndex + 1;
       if (nextIdx < MISSION_DEFS.length){
@@ -3038,34 +2772,23 @@ document.addEventListener('click', (e)=>{
   }
 });
 
+/* ---------------------------- DEVICE PICKER WIRING ---------------------------- */
+document.getElementById('pickDesktop').addEventListener('click', ()=>{ Sound.init(); Sound.resume(); setMode('desktop'); });
+document.getElementById('pickMobile').addEventListener('click', ()=>{ Sound.init(); Sound.resume(); setMode('mobile'); });
+document.getElementById('rotateUseDesktop').addEventListener('click', ()=>{ Sound.init(); Sound.resume(); setMode('desktop'); });
+
 /* ---------------------------- BOOT ---------------------------- */
 Save.load();
-Platform.load();
+Sound.muted = Save.data.sound === false;
+drawMenuBackdrop();
 
-document.getElementById('btnSound').textContent = 'SOUND: ' + (Sound.muted ? 'OFF' : 'ON');
+/* Init virtual controls (hidden until mobile mode + in-game) */
+VJoy.init();
+VFire.init();
+VThrottle.init();
 
-if (!Platform.value){
-  Game.state = 'menu';
-  showScreen('platform');
-} else {
-  applyPlatform();
-  Game.state = 'menu';
-  showScreen('menu');
-}
-
-/* first user gesture unlocks audio */
-['pointerdown','keydown','touchstart'].forEach(ev=>{
+['pointerdown','keydown'].forEach(ev=>{
   window.addEventListener(ev, ()=>{ Sound.init(); Sound.resume(); }, { once:true });
-});
-
-/* keep the rotate overlay class in sync on orientation change */
-window.addEventListener('resize', ()=>{
-  const overlay = document.getElementById('rotateOverlay');
-  if (Platform.isMobile){
-    overlay.classList.add('show');
-  } else {
-    overlay.classList.remove('show');
-  }
 });
 
 console.log('%cIRON FRONT: WORLD WAR', 'color:#c9b98a;font-size:16px;letter-spacing:4px;');
