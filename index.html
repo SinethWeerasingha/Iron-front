@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>IRON FRONT: WORLD WAR</title>
 <style>
 /* ============================================================
@@ -27,21 +27,21 @@ body{
   color:var(--offwhite);
   user-select:none;
   -webkit-font-smoothing:antialiased;
+  -webkit-tap-highlight-color:transparent;
 }
-canvas#game{position:fixed;inset:0;width:100%;height:100%;z-index:0;display:block;cursor:none;}
+canvas#game{position:fixed;inset:0;width:100%;height:100%;z-index:0;display:block;cursor:none;touch-action:none;}
 
 /* ---------- generic screen ---------- */
 .screen{
   position:fixed;inset:0;z-index:20;
   display:flex;
-  /* NOTE: no align-items / justify-content here.
-     Centering is done by `margin:auto` on the child below,
-     which works correctly even when content overflows. */
   background:
     radial-gradient(ellipse at 50% 40%, rgba(60,74,42,.30), transparent 65%),
     linear-gradient(180deg,#0e1109 0%, #171a11 45%, #0b0d08 100%);
   overflow-y:auto;
   overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;
+  touch-action:pan-y;
 }
 .screen.hidden{display:none;}
 .screen::after{
@@ -50,8 +50,6 @@ canvas#game{position:fixed;inset:0;width:100%;height:100%;z-index:0;display:bloc
   opacity:.35;
 }
 
-/* This is the key change: auto margins center the inner content
-   when it fits, and gracefully scroll from the top when it doesn't. */
 .menu-inner,
 .list-inner,
 .res-inner,
@@ -96,6 +94,7 @@ button{
   border:1px solid rgba(201,185,138,.30);
   transition:all .16s ease;
   text-transform:uppercase;
+  touch-action:manipulation;
 }
 button:hover:not(:disabled){
   background:linear-gradient(180deg,rgba(140,160,95,.45),rgba(60,74,42,.8));
@@ -251,7 +250,6 @@ button.danger{border-color:rgba(140,47,30,.7);color:#e2b3a8;}
 }
 #hudMsg.show{opacity:1;}
 
-/* crosshair drawn on canvas, but a soft vignette helps */
 #vignette{
   position:fixed;inset:0;z-index:4;pointer-events:none;
   box-shadow:inset 0 0 180px 40px rgba(0,0,0,.75);
@@ -274,8 +272,134 @@ button.danger{border-color:rgba(140,47,30,.7);color:#e2b3a8;}
   font-family:inherit;border:1px solid rgba(201,185,138,.25);
   padding:1px 5px;margin-right:4px;color:#8a9179;font-size:9px;
 }
+
+/* ============================================================
+   TOUCH CONTROLS (mobile)
+   ============================================================ */
+#touchControls{
+  position:fixed;inset:0;z-index:6;pointer-events:none;display:none;
+  touch-action:none;
+}
+body.mobile #touchControls.on{display:block;}
+
+.stick{
+  position:absolute;bottom:14px;
+  width:104px;height:104px;border-radius:50%;
+  border:2px solid rgba(201,185,138,.30);
+  background:radial-gradient(circle, rgba(90,107,61,.20), rgba(0,0,0,.38));
+  pointer-events:auto;touch-action:none;
+  box-shadow:0 0 18px rgba(0,0,0,.5) inset;
+}
+#stickMove{left:14px;}
+#stickAim{right:14px;display:none;}
+.stick .knob{
+  position:absolute;left:50%;top:50%;width:44px;height:44px;margin:-22px 0 0 -22px;
+  border-radius:50%;
+  background:rgba(201,185,138,.30);
+  border:2px solid rgba(201,185,138,.55);
+  pointer-events:none;
+}
+.stick.active .knob{background:rgba(201,185,138,.55);border-color:var(--sand);}
+
+#rightButtons{
+  position:absolute;right:14px;bottom:14px;
+  display:none;flex-direction:column;align-items:center;gap:10px;
+  pointer-events:none;touch-action:none;
+}
+.touch-btn{
+  width:70px;height:70px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  border:2px solid rgba(201,185,138,.42);
+  background:rgba(140,47,30,.30);
+  color:var(--offwhite);font-size:11px;letter-spacing:.14em;
+  pointer-events:auto;touch-action:none;
+  -webkit-user-select:none;user-select:none;
+}
+.touch-btn.active{background:rgba(200,80,50,.60);border-color:var(--sand);}
+.touch-btn.sm{
+  width:44px;height:44px;font-size:15px;
+  background:rgba(90,107,61,.30);
+}
+.touch-btn.sm.active{background:rgba(140,170,95,.55);}
+#thrBtns{display:flex;gap:8px;}
+
+/* ============================================================
+   MOBILE LAYOUT
+   ============================================================ */
+body.mobile{cursor:auto;}
+body.mobile canvas#game{cursor:auto;}
+
+body.mobile .hud-panel{
+  font-size:9px;
+  padding:6px 8px;
+  letter-spacing:.10em;
+  backdrop-filter:none;
+}
+body.mobile #hudTopLeft{
+  top:8px;left:8px;min-width:0;max-width:52vw;
+}
+body.mobile .hud-mission{font-size:10px;margin-bottom:3px;letter-spacing:.16em;}
+body.mobile .hud-objective{font-size:9px;line-height:1.45;}
+body.mobile .hud-timer{font-size:12px;margin-top:3px;}
+
+body.mobile #hudTopRight{top:8px;right:8px;padding:4px;}
+body.mobile #minimap{width:78px;height:78px;}
+body.mobile .hud-compass{font-size:9px;margin-top:2px;letter-spacing:.18em;}
+
+body.mobile #hudBottomLeft{
+  bottom:auto;top:50%;left:8px;
+  transform:translateY(-50%) scale(.85);
+  transform-origin:left center;
+  min-width:0;width:172px;
+}
+body.mobile .bar-line i{width:42px;font-size:8px;}
+body.mobile .bar-track{height:5px;}
+
+body.mobile #hudBottomRight{
+  bottom:auto;top:112px;right:8px;
+  transform:none;
+  min-width:0;text-align:right;
+}
+body.mobile .hud-ammo{font-size:19px;}
+body.mobile .hud-ammo small{font-size:9px;}
+body.mobile .reload-track{margin-top:5px;height:4px;}
+
+body.mobile #hudMsg{
+  bottom:auto;top:38%;font-size:11px;letter-spacing:.2em;
+  white-space:normal;padding:0 20px;
+}
+
+body.mobile .hints{display:none;}
+
+/* ============================================================
+   ROTATE OVERLAY
+   ============================================================ */
+#rotateOverlay{
+  display:none;position:fixed;inset:0;z-index:200;
+  background:linear-gradient(180deg,#0e1109,#171a11 50%,#0b0d08);
+  flex-direction:column;align-items:center;justify-content:center;
+  gap:18px;text-align:center;padding:24px;
+}
+body.mobile #rotateOverlay.show{display:flex;}
+#rotateOverlay .rot-icon{
+  font-size:60px;color:var(--sand);
+  animation:rot 2.2s ease-in-out infinite;
+  line-height:1;
+}
+@keyframes rot{
+  0%,30%{transform:rotate(0deg);}
+  60%,100%{transform:rotate(90deg);}
+}
+#rotateOverlay .rt{
+  font-size:15px;letter-spacing:.30em;color:var(--sand);
+}
+#rotateOverlay .rs{
+  font-size:10px;letter-spacing:.22em;color:#8f8462;
+  border-top:1px solid rgba(201,185,138,.18);
+  padding-top:14px;max-width:280px;line-height:2;
+}
+
 @media(max-width:700px){
-  .hints{display:none;}
   #hudTopRight{transform:scale(.8);transform-origin:top right;}
   #hudBottomLeft,#hudTopLeft{transform:scale(.85);transform-origin:bottom left;}
   #hudTopLeft{transform-origin:top left;}
@@ -286,6 +410,26 @@ button.danger{border-color:rgba(140,47,30,.7);color:#e2b3a8;}
 
 <canvas id="game"></canvas>
 <div id="vignette"></div>
+
+<!-- ===================== ROTATE OVERLAY ===================== -->
+<div id="rotateOverlay">
+  <div class="rot-icon">▭</div>
+  <div class="rt">ROTATE YOUR DEVICE</div>
+  <div class="rs">LANDSCAPE MODE IS REQUIRED<br>TO PLAY IRON FRONT</div>
+</div>
+
+<!-- ===================== TOUCH CONTROLS ===================== -->
+<div id="touchControls">
+  <div class="stick" id="stickMove"><div class="knob"></div></div>
+  <div class="stick" id="stickAim"><div class="knob"></div></div>
+  <div id="rightButtons">
+    <div id="thrBtns">
+      <div class="touch-btn sm" id="btnThrUp">▲</div>
+      <div class="touch-btn sm" id="btnThrDn">▼</div>
+    </div>
+    <div class="touch-btn" id="btnFire">FIRE</div>
+  </div>
+</div>
 
 <!-- ===================== HUD ===================== -->
 <div id="hud">
@@ -320,8 +464,22 @@ button.danger{border-color:rgba(140,47,30,.7);color:#e2b3a8;}
   <div id="hudMsg"></div>
 </div>
 
+<!-- ===================== PLATFORM SELECT ===================== -->
+<div class="screen" id="screenPlatform">
+  <div class="menu-inner">
+    <h1 class="logo">IRON<span>FRONT</span></h1>
+    <div class="logo-sub">WORLD WAR</div>
+    <p class="tagline">SELECT YOUR PLATFORM<br>CHOOSE HOW YOU DEPLOY</p>
+    <div class="menu-buttons">
+      <button data-act="pickDesktop">🖥 DESKTOP — KEYBOARD &amp; MOUSE</button>
+      <button data-act="pickMobile">📱 MOBILE — TOUCH CONTROLS</button>
+    </div>
+    <div class="footer">MOBILE PLAY REQUIRES LANDSCAPE ORIENTATION</div>
+  </div>
+</div>
+
 <!-- ===================== MAIN MENU ===================== -->
-<div class="screen" id="screenMenu">
+<div class="screen hidden" id="screenMenu">
   <div class="menu-inner">
     <h1 class="logo">IRON<span>FRONT</span></h1>
     <div class="logo-sub">WORLD WAR</div>
@@ -364,6 +522,7 @@ button.danger{border-color:rgba(140,47,30,.7);color:#e2b3a8;}
     <div class="list-title" style="margin-bottom:28px">SETTINGS</div>
     <div class="menu-buttons">
       <button data-act="toggleSound" id="btnSound">SOUND: ON</button>
+      <button data-act="switchPlatform" id="btnPlatform">PLATFORM: DESKTOP</button>
       <button data-act="resetProgress" class="danger">RESET CAMPAIGN PROGRESS</button>
       <button class="ghost" data-act="back">◄ BACK</button>
     </div>
@@ -442,6 +601,11 @@ function fmtTime(s){
   const m = Math.floor(s/60);
   return String(m).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
 }
+function deadzone(v, dz){
+  const a = Math.abs(v);
+  if (a < dz) return 0;
+  return (a - dz) / (1 - dz) * Math.sign(v);
+}
 
 /* ---------------------------- AUDIO ---------------------------- */
 const Sound = {
@@ -456,7 +620,6 @@ const Sound = {
     this.master = this.ctx.createGain();
     this.master.gain.value = 0.32;
     this.master.connect(this.ctx.destination);
-    // white noise buffer
     const len = this.ctx.sampleRate * 1.0;
     const b = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
     const d = b.getChannelData(0);
@@ -542,6 +705,115 @@ const Sound = {
   }
 };
 
+/* ---------------------------- PLATFORM ---------------------------- */
+const PLATFORM_KEY = 'ironfront_platform_v1';
+const Platform = {
+  value: null,
+  load(){
+    try{ this.value = localStorage.getItem(PLATFORM_KEY); }catch(e){}
+  },
+  set(v){
+    this.value = v;
+    try{
+      if (v) localStorage.setItem(PLATFORM_KEY, v);
+      else localStorage.removeItem(PLATFORM_KEY);
+    }catch(e){}
+  },
+  get isMobile(){ return this.value === 'mobile'; }
+};
+
+/* ---------------------------- TOUCH INPUT ---------------------------- */
+const Touch = {
+  enabled: false,
+  move: { x:0, y:0, active:false },
+  aim:  { x:0, y:0, active:false },
+  aimAngle: -Math.PI/2,
+  fire: false,
+  thrUp: false,
+  thrDn: false,
+  reset(){
+    this.move.x = this.move.y = 0; this.move.active = false;
+    this.aim.x = this.aim.y = 0; this.aim.active = false;
+    this.aimAngle = -Math.PI/2;
+    this.fire = false; this.thrUp = false; this.thrDn = false;
+  }
+};
+
+function bindStick(el, state, isAim){
+  const knob = el.querySelector('.knob');
+  let pid = null;
+
+  function calc(e){
+    const r = el.getBoundingClientRect();
+    const cx = r.left + r.width/2;
+    const cy = r.top + r.height/2;
+    const max = Math.max(10, r.width * 0.42);
+    let dx = e.clientX - cx, dy = e.clientY - cy;
+    const d = Math.hypot(dx, dy) || 1;
+    if (d > max){ dx = dx/d*max; dy = dy/d*max; }
+    return { dx, dy, max };
+  }
+
+  function apply(e){
+    const p = calc(e);
+    state.x = p.dx / p.max;
+    state.y = p.dy / p.max;
+    state.active = true;
+    knob.style.transform = 'translate(' + p.dx + 'px,' + p.dy + 'px)';
+    if (isAim && (Math.abs(state.x) > 0.18 || Math.abs(state.y) > 0.18)){
+      Touch.aimAngle = Math.atan2(state.y, state.x);
+    }
+  }
+
+  el.addEventListener('pointerdown', (e)=>{
+    if (pid !== null) return;
+    e.preventDefault();
+    pid = e.pointerId;
+    try{ el.setPointerCapture(pid); }catch(err){}
+    el.classList.add('active');
+    apply(e);
+  });
+
+  el.addEventListener('pointermove', (e)=>{
+    if (e.pointerId !== pid) return;
+    e.preventDefault();
+    apply(e);
+  });
+
+  function release(e){
+    if (e.pointerId !== pid) return;
+    pid = null;
+    state.x = 0; state.y = 0; state.active = false;
+    el.classList.remove('active');
+    knob.style.transform = 'translate(0,0)';
+  }
+  el.addEventListener('pointerup', release);
+  el.addEventListener('pointercancel', release);
+}
+
+function bindHold(el, setter){
+  el.addEventListener('pointerdown', (e)=>{
+    e.preventDefault();
+    try{ el.setPointerCapture(e.pointerId); }catch(err){}
+    el.classList.add('active');
+    setter(true);
+  });
+  function off(e){
+    el.classList.remove('active');
+    setter(false);
+  }
+  el.addEventListener('pointerup', off);
+  el.addEventListener('pointercancel', off);
+}
+
+(function initTouchControls(){
+  bindStick(document.getElementById('stickMove'), Touch.move, false);
+  bindStick(document.getElementById('stickAim'),  Touch.aim,  true);
+  bindHold(document.getElementById('btnFire'),  v => Touch.fire  = v);
+  bindHold(document.getElementById('btnThrUp'), v => Touch.thrUp = v);
+  bindHold(document.getElementById('btnThrDn'), v => Touch.thrDn = v);
+})();
+
 /* ---------------------------- SAVE ---------------------------- */
 const SAVE_KEY = 'ironfront_ww_save_v1';
 const Save = {
@@ -579,6 +851,7 @@ function resize(){
   canvas.style.height = VH + 'px';
 }
 window.addEventListener('resize', resize);
+window.addEventListener('orientationchange', ()=>{ setTimeout(resize, 120); });
 resize();
 
 /* ---------------------------- INPUT ---------------------------- */
@@ -590,12 +863,16 @@ const Input = {
       if (e.repeat) return;
       this.keys[e.code] = true;
       if (e.code === 'Escape') togglePause();
-      if (e.code === 'KeyR' && Game.state === 'playing') { /* no-op placeholder */ }
     });
     window.addEventListener('keyup', e=>{ this.keys[e.code] = false; });
     window.addEventListener('mousemove', e=>{ this.mouse.x = e.clientX; this.mouse.y = e.clientY; });
-    window.addEventListener('mousedown', e=>{ if (e.button === 0){ this.mouse.down = true; Sound.resume(); } });
-    window.addEventListener('mouseup',   e=>{ if (e.button === 0) this.mouse.down = false; });
+    window.addEventListener('mousedown', e=>{
+      if (Touch.enabled) return;           // no synthetic mouse firing on mobile
+      if (e.button === 0){ this.mouse.down = true; Sound.resume(); }
+    });
+    window.addEventListener('mouseup', e=>{
+      if (e.button === 0) this.mouse.down = false;
+    });
     window.addEventListener('blur', ()=>{ this.keys = {}; this.mouse.down = false; });
     canvas.addEventListener('contextmenu', e=> e.preventDefault());
   },
@@ -660,7 +937,6 @@ const ENEMY_TANK_SPECS = {
 
 /* ---------------------------- MISSIONS ---------------------------- */
 const MISSION_DEFS = [
-  /* CHAPTER I */
   { name:'First Deployment', type:'tank', vehicle:'sherman', biome:'summer', seed:101,
     enemies:3, timeLimit:300,
     brief:'Your first command. Clear the enemy patrol from the approach road.',
@@ -681,7 +957,6 @@ const MISSION_DEFS = [
     brief:'Fly the reconnaissance route and clear enemy fighters from the corridor.',
     objectives:[{type:'waypoints', count:4},{type:'destroy', need:3}] },
 
-  /* CHAPTER II */
   { name:'Frozen Ground', type:'tank', vehicle:'churchill', biome:'winter', seed:105,
     enemies:4, timeLimit:330,
     brief:'The counteroffensive begins in the snow. Break the enemy spearhead.',
@@ -702,7 +977,6 @@ const MISSION_DEFS = [
     brief:'Hold the line for two minutes. Reinforcements are on the way.',
     objectives:[{type:'survive', need:120}] },
 
-  /* CHAPTER III */
   { name:'Industrial Zone', type:'tank', vehicle:'cromwell', biome:'industrial', seed:109,
     enemies:6, timeLimit:360,
     brief:'The factory district is fortified. Clear the armour and break through.',
@@ -739,13 +1013,13 @@ const CHAPTERS = [
 
 /* ---------------------------- GAME STATE ---------------------------- */
 const Game = {
-  state:'menu',      // menu | missions | vehicles | settings | playing | paused | results
+  state:'menu',
   missionIndex:0,
   isTraining:false,
   flash:0,
   msgTimer:0
 };
-let M = null;        // current mission runtime
+let M = null;
 let cam = { x:0, y:0, zoom:1, shake:0 };
 
 /* ---------------------------- MAP GENERATION ---------------------------- */
@@ -760,11 +1034,9 @@ function buildMap(def){
   tc.width = S; tc.height = S;
   const g = tc.getContext('2d');
 
-  /* base ground */
   g.fillStyle = B.ground;
   g.fillRect(0,0,S,S);
 
-  /* organic patches */
   for (let i=0;i<520;i++){
     const x = rnd()*S, y = rnd()*S;
     const r = 40 + rnd()*190;
@@ -776,7 +1048,6 @@ function buildMap(def){
   }
   g.globalAlpha = 1;
 
-  /* rough patches (slow terrain) */
   const roughPatches = [];
   for (let i=0;i<26;i++){
     const x = rnd()*S, y = rnd()*S, r = 70+rnd()*130;
@@ -787,10 +1058,7 @@ function buildMap(def){
   }
   g.globalAlpha = 1;
 
-  /* roads — one main NORTH-SOUTH highway plus 1–2 east–west crossroads */
   const roads = [];
-
-  /* main highway: runs the full length of the map, through the centre */
   {
     const pts = [];
     for (let s=0; s<=8; s++){
@@ -801,7 +1069,6 @@ function buildMap(def){
     roads.push(pts);
   }
 
-  /* crossroads branching east–west */
   const crossCount = 1 + Math.floor(rnd()*2);
   for (let i=0;i<crossCount;i++){
     const pts = [];
@@ -814,7 +1081,6 @@ function buildMap(def){
     roads.push(pts);
   }
 
-  /* draw all roads identically */
   for (const pts of roads){
     g.strokeStyle = B.road;
     g.lineWidth = 38;
@@ -846,7 +1112,6 @@ function buildMap(def){
     return false;
   };
 
-  /* buildings */
   const obstacles = [];
   const bldCount = def.type === 'aircraft' ? 26 : 46;
   for (let i=0;i<bldCount;i++){
@@ -858,27 +1123,23 @@ function buildMap(def){
       h = 60 + rnd()*90;
       tries++;
     } while ((nearRoad(x,y,90) ||
-              (Math.abs(x - S*0.5) < 300 && y > S*0.58) ||   /* south spawn corridor */
-              (Math.abs(x - S*0.5) < 220 && y < S*0.24))     /* north goal approach */
+              (Math.abs(x - S*0.5) < 300 && y > S*0.58) ||
+              (Math.abs(x - S*0.5) < 220 && y < S*0.24))
              && tries < 30);
 
     obstacles.push({ kind:'rect', x, y, w, h, b:true });
 
-    /* shadow */
     g.fillStyle = B.bldShadow;
     g.globalAlpha = 0.45;
     g.fillRect(x-w/2+7, y-h/2+9, w, h);
     g.globalAlpha = 1;
 
-    /* body */
     g.fillStyle = B.bld;
     g.fillRect(x-w/2, y-h/2, w, h);
 
-    /* roof */
     g.fillStyle = B.bldRoof;
     g.fillRect(x-w/2+6, y-h/2+6, w-12, h-12);
 
-    /* roof lines */
     g.strokeStyle = 'rgba(0,0,0,.25)';
     g.lineWidth = 1;
     for (let k=1;k<3;k++){
@@ -889,7 +1150,6 @@ function buildMap(def){
     }
   }
 
-  /* trees */
   const treeCount = def.biome === 'industrial' ? 150 : 300;
   for (let i=0;i<treeCount;i++){
     let x,y,r,tries=0;
@@ -905,17 +1165,14 @@ function buildMap(def){
 
     obstacles.push({ kind:'circle', x, y, r });
 
-    /* trunk/shadow */
     g.fillStyle = 'rgba(0,0,0,.30)';
     g.beginPath(); g.ellipse(x+5, y+6, r*0.9, r*0.6, 0, 0, TAU); g.fill();
-    /* canopy */
     g.fillStyle = B.tree;
     g.beginPath(); g.arc(x, y, r, 0, TAU); g.fill();
     g.fillStyle = B.tree2;
     g.beginPath(); g.arc(x - r*0.25, y - r*0.25, r*0.62, 0, TAU); g.fill();
   }
 
-  /* craters / decals */
   for (let i=0;i<70;i++){
     const x = rnd()*S, y = rnd()*S, r = 8 + rnd()*22;
     g.globalAlpha = 0.22;
@@ -928,12 +1185,10 @@ function buildMap(def){
   }
   g.globalAlpha = 1;
 
-  /* world border */
   g.strokeStyle = 'rgba(0,0,0,.55)';
   g.lineWidth = 40;
   g.strokeRect(0,0,S,S);
 
-  /* minimap base */
   const mm = document.createElement('canvas');
   mm.width = 150; mm.height = 150;
   const mg = mm.getContext('2d');
@@ -1003,17 +1258,17 @@ function startMission(def, index, isTraining){
   Game.isTraining = !!isTraining;
   Game.flash = 0;
 
+  Touch.reset();
+
   const map = buildMap(def);
   const S = map.size;
 
-  /* --- player spawn (south edge, facing north) --- */
   let px, py, pAngle;
   if (def.type === 'aircraft'){
     px = S*0.50; py = S*0.86; pAngle = -Math.PI / 2;
   } else {
     px = S*0.50; py = S*0.84; pAngle = -Math.PI / 2;
 
-    /* snap the spawn onto the main road so the player starts on tarmac */
     if (map.roads.length){
       const main = map.roads[0];
       let best = main[0], bd = 1e9;
@@ -1024,7 +1279,6 @@ function startMission(def, index, isTraining){
       px = best.x; py = best.y;
     }
 
-    /* nudge away from any obstacle (northwards, to stay on the corridor) */
     for (let i=0;i<80;i++){
       let blocked = false;
       for (const o of map.obstacles){
@@ -1039,7 +1293,6 @@ function startMission(def, index, isTraining){
     }
   }
 
-  /* --- player vehicle --- */
   let player;
   if (def.type === 'tank'){
     player = makeTank(px, py, pAngle, TANK_SPECS[def.vehicle] || TANK_SPECS.sherman, true, false);
@@ -1049,14 +1302,12 @@ function startMission(def, index, isTraining){
     player = makeAircraft(px, py, pAngle, AIR_SPECS[def.vehicle] || AIR_SPECS.fighter, true);
   }
 
-  /* --- goal zone --- */
   const goal = { x: S*0.86, y: S*0.5 };
   if (def.type === 'transport'){
     goal.x = S*0.88;
     goal.y = S*(0.28 + (mulberry32(def.seed+7)())*0.44);
   }
 
-  /* --- enemies --- */
   const enemies = [];
   const enemyCount = def.enemies || 0;
   for (let i=0;i<enemyCount;i++){
@@ -1078,12 +1329,11 @@ function startMission(def, index, isTraining){
     }
   }
 
-  /* --- objectives --- */
   const objectives = [];
-  const wpCount = (def.objectives.find(o=>o.type==='waypoints')||{}).count || 0;
   for (const od of def.objectives){
     if (od.type === 'reach' || od.type === 'deliver'){
-      objectives.push({ type: od.type, x: goal.x, y: goal.y, r: 130, got:0, label: od.type==='deliver'?'DELIVER CARGO':'REACH OBJECTIVE' });
+      objectives.push({ type: od.type, x: goal.x, y: goal.y, r: 130, got:0,
+                        label: od.type==='deliver'?'DELIVER CARGO':'REACH OBJECTIVE' });
     } else if (od.type === 'destroy'){
       objectives.push({ type:'destroy', need: od.need, got:0, label:'DESTROY ENEMY ARMOUR' });
     } else if (od.type === 'survive'){
@@ -1130,6 +1380,9 @@ function startMission(def, index, isTraining){
 
   cam.x = player.x; cam.y = player.y;
   cam.zoom = def.type === 'aircraft' ? 0.62 : 1.0;
+  if (Touch.enabled){
+    cam.zoom *= 1.05;   // slightly wider view on small screens
+  }
   cam.shake = 0;
 
   Game.state = 'playing';
@@ -1137,8 +1390,8 @@ function startMission(def, index, isTraining){
   document.getElementById('hud').classList.add('on');
   document.getElementById('vignette').classList.add('on');
 
-  /* HUD shape */
   setupHUDForVehicle(player);
+  setupTouchForVehicle(player);
   renderMinimapStatic();
 
   Sound.engineStart();
@@ -1189,6 +1442,29 @@ function setupHUDForVehicle(v){
   HUDel.ammoMax.textContent = v.maxAmmo || 0;
 }
 
+function setupTouchForVehicle(v){
+  const tc = document.getElementById('touchControls');
+  if (!Platform.isMobile){
+    tc.classList.remove('on');
+    return;
+  }
+  tc.classList.add('on');
+
+  const aimStick  = document.getElementById('stickAim');
+  const rightBtns = document.getElementById('rightButtons');
+
+  if (v.kind === 'tank'){
+    aimStick.style.display = 'block';
+    rightBtns.style.display = 'none';
+  } else if (v.kind === 'aircraft'){
+    aimStick.style.display = 'none';
+    rightBtns.style.display = 'flex';
+  } else {
+    aimStick.style.display = 'none';
+    rightBtns.style.display = 'none';
+  }
+}
+
 function renderMinimapStatic(){
   if (!M) return;
   minimapImg = M.map.minimap;
@@ -1200,7 +1476,6 @@ function updateHUD(){
 
   HUDel.mission.textContent = M.def.name.toUpperCase();
 
-  /* objectives */
   let objHTML = '';
   for (const o of M.objectives){
     let txt = o.label, done = false;
@@ -1216,7 +1491,6 @@ function updateHUD(){
   }
   HUDel.objective.innerHTML = objHTML;
 
-  /* timer */
   if (M.timer > 0){
     HUDel.timer.textContent = fmtTime(M.timer);
     HUDel.timer.classList.toggle('warn', M.timer < 30);
@@ -1225,7 +1499,6 @@ function updateHUD(){
     HUDel.timer.classList.remove('warn');
   }
 
-  /* speed */
   if (p.kind === 'aircraft'){
     HUDel.speed.textContent = Math.round(Math.abs(p.speed) * 1.6) + ' KPH';
     HUDel.alt.textContent = Math.round(p.alt) + ' M';
@@ -1233,7 +1506,6 @@ function updateHUD(){
     HUDel.speed.textContent = Math.round(Math.abs(p.speed) * 0.9) + ' KPH';
   }
 
-  /* condition */
   const hullPct = clamp(p.hp / p.maxHp, 0, 1);
   HUDel.cond.textContent = Math.round(hullPct*100) + '%';
   HUDel.cond.classList.toggle('hot', hullPct < 0.35);
@@ -1253,7 +1525,6 @@ function updateHUD(){
     HUDel.barFuel.classList.toggle('warn', f < 0.25);
   }
 
-  /* ammo / reload */
   if (p.kind === 'tank'){
     HUDel.ammo.textContent = p.ammo;
     const r = 1 - clamp(p.reload / p.spec.reloadTime, 0, 1);
@@ -1268,14 +1539,12 @@ function updateHUD(){
     HUDel.reload.style.width = '0%';
   }
 
-  /* compass */
   const heading = ((p.angle * 180/Math.PI) + 90 + 360) % 360;
   const dirs = ['N','NE','E','SE','S','SW','W','NW'];
   HUDel.compass.textContent = dirs[Math.round(heading/45) % 8] + ' ' + Math.round(heading) + '°';
 
   drawMinimap();
 
-  /* message fade */
   if (Game.msgTimer > 0){
     Game.msgTimer -= 1/60;
     if (Game.msgTimer <= 0) HUDel.msg.classList.remove('show');
@@ -1296,7 +1565,6 @@ function drawMinimap(){
 
   const sx = w / M.size, sy = h / M.size;
 
-  /* goal */
   for (const o of M.objectives){
     if (o.type === 'reach' || o.type === 'deliver'){
       mmCtx.strokeStyle = '#a9c47a';
@@ -1313,14 +1581,12 @@ function drawMinimap(){
     }
   }
 
-  /* enemies */
   for (const e of M.enemies){
     if (!e.alive) continue;
     mmCtx.fillStyle = '#c9553c';
     mmCtx.beginPath(); mmCtx.arc(e.x*sx, e.y*sy, 2.6, 0, TAU); mmCtx.fill();
   }
 
-  /* player */
   const p = M.player;
   mmCtx.save();
   mmCtx.translate(p.x*sx, p.y*sy);
@@ -1388,7 +1654,6 @@ function fireShell(from, angle, spec, owner){
   from.reload = spec.reloadTime;
   from.ammo--;
   from.shotsFired++;
-  /* muzzle flash particles */
   burst(x, y, 8, '#ffd27a', 150, 3, 0.22);
   for (let i=0;i<4;i++){
     const a = angle + rand(-0.4,0.4);
@@ -1424,7 +1689,6 @@ function updateProjectiles(dt){
 
     let hit = false;
 
-    /* obstacle collision */
     for (const o of M.obstacles){
       if (o.kind === 'circle'){
         if (dist2(s.x,s.y,o.x,o.y) < (o.r+s.radius)*(o.r+s.radius)){ hit = true; break; }
@@ -1456,7 +1720,6 @@ function updateProjectiles(dt){
       }
     }
 
-    /* world bounds */
     if (s.x < 0 || s.y < 0 || s.x > M.size || s.y > M.size) hit = true;
 
     if (hit){
@@ -1485,7 +1748,6 @@ function damageVehicle(v, amount, hx, hy){
     if (v.isEnemy){
       M.kills++;
       if (M.def.type !== 'aircraft'){
-        /* burning wreck */
         for (let i=0;i<12;i++){
           addParticle(v.x + rand(-18,18), v.y + rand(-18,18),
             rand(-15,15), rand(-40,-8), rand(1.5,3.0), rand(14,30), 'rgba(50,46,40,0.5)', 'smoke');
@@ -1557,9 +1819,44 @@ function resolveObstacles(v){
       }
     }
   }
-  /* world bounds */
   v.x = clamp(v.x, v.radius+8, M.size - v.radius - 8);
   v.y = clamp(v.y, v.radius+8, M.size - v.radius - 8);
+}
+
+/* ---------------------------- INPUT HELPERS ---------------------------- */
+function getDriveThrottle(){
+  if (Touch.enabled) return deadzone(-Touch.move.y, 0.14);
+  return (Input.key('KeyW') ? 1 : 0) - (Input.key('KeyS') ? 1 : 0);
+}
+function getSteer(){
+  if (Touch.enabled) return deadzone(Touch.move.x, 0.14);
+  return (Input.key('KeyD') ? 1 : 0) - (Input.key('KeyA') ? 1 : 0);
+}
+function getAirThrottle(){
+  if (Touch.enabled) return (Touch.thrUp ? 1 : 0) - (Touch.thrDn ? 1 : 0);
+  return (Input.key('KeyW') ? 1 : 0) - (Input.key('KeyS') ? 1 : 0);
+}
+function getAirBank(){
+  if (Touch.enabled) return deadzone(Touch.move.x, 0.14);
+  return (Input.key('KeyD') ? 1 : 0) - (Input.key('KeyA') ? 1 : 0);
+}
+function getAirPitch(){
+  if (Touch.enabled) return deadzone(-Touch.move.y, 0.14);
+  return (Input.key('ArrowUp') || Input.key('ShiftLeft') ? 1 : 0)
+       - (Input.key('ArrowDown') || Input.key('ControlLeft') ? 1 : 0);
+}
+function getTankFiring(){
+  if (Touch.enabled) return Math.hypot(Touch.aim.x, Touch.aim.y) > 0.62;
+  return Input.mouse.down || Input.key('Space');
+}
+function getAirFiring(){
+  if (Touch.enabled) return Touch.fire;
+  return Input.mouse.down || Input.key('Space');
+}
+function getAimAngle(p){
+  if (Touch.enabled) return Touch.aimAngle;
+  const mw = screenToWorld(Input.mouse.x, Input.mouse.y);
+  return Math.atan2(mw.y - p.y, mw.x - p.x);
 }
 
 /* ---------------------------- PLAYER UPDATE ---------------------------- */
@@ -1576,8 +1873,8 @@ function updatePlayer(dt){
 }
 
 function updateTankPlayer(dt, p){
-  const throttleIn = (Input.key('KeyW') ? 1 : 0) - (Input.key('KeyS') ? 1 : 0);
-  const steerIn    = (Input.key('KeyD') ? 1 : 0) - (Input.key('KeyA') ? 1 : 0);
+  const throttleIn = getDriveThrottle();
+  const steerIn    = getSteer();
 
   const terr = terrainAt(p.x, p.y);
   const terrMul = terr === 'road' ? 1.12 : (terr === 'rough' ? 0.66 : 1.0);
@@ -1591,7 +1888,6 @@ function updateTankPlayer(dt, p){
   if (p.speed < target) p.speed = Math.min(target, p.speed + accel*dt);
   else                  p.speed = Math.max(target, p.speed - accel*1.7*dt);
 
-  /* track differential steering */
   const speedFactor = 0.45 + 0.55 * Math.min(1, Math.abs(p.speed)/p.spec.maxSpeed);
   p.angle += steerIn * p.spec.turnRate * speedFactor * trkMul * dt;
 
@@ -1600,25 +1896,21 @@ function updateTankPlayer(dt, p){
 
   resolveObstacles(p);
 
-  /* turret aim toward mouse */
-  const mw = screenToWorld(Input.mouse.x, Input.mouse.y);
-  const targetAng = Math.atan2(mw.y - p.y, mw.x - p.x);
+  const targetAng = getAimAngle(p);
   const turMul = 0.3 + 0.7 * (p.turretHp/100);
   const maxTurn = p.spec.turretSpeed * turMul * dt;
   const d = angDiff(p.turret, targetAng);
   p.turret += clamp(d, -maxTurn, maxTurn);
 
-  /* reload */
   if (p.reload > 0) p.reload -= dt;
 
-  /* fire */
-  if ((Input.mouse.down || Input.key('Space')) && p.reload <= 0 && p.ammo > 0){
-    if (Math.abs(angDiff(p.turret, targetAng)) < 0.09){
+  const aimTol = Touch.enabled ? 0.14 : 0.09;
+  if (getTankFiring() && p.reload <= 0 && p.ammo > 0){
+    if (Math.abs(angDiff(p.turret, targetAng)) < aimTol){
       fireShell(p, p.turret, p.spec, 'player');
     }
   }
 
-  /* dust trail */
   p.trailTimer -= dt;
   if (Math.abs(p.speed) > 25 && p.trailTimer <= 0){
     p.trailTimer = 0.09;
@@ -1635,8 +1927,8 @@ function updateTankPlayer(dt, p){
 }
 
 function updateTruckPlayer(dt, p){
-  const throttleIn = (Input.key('KeyW') ? 1 : 0) - (Input.key('KeyS') ? 1 : 0);
-  const steerIn    = (Input.key('KeyD') ? 1 : 0) - (Input.key('KeyA') ? 1 : 0);
+  const throttleIn = getDriveThrottle();
+  const steerIn    = getSteer();
 
   const terr = terrainAt(p.x, p.y);
   const terrMul = terr === 'road' ? 1.22 : (terr === 'rough' ? 0.68 : 1.0);
@@ -1649,7 +1941,6 @@ function updateTruckPlayer(dt, p){
   if (p.speed < target) p.speed = Math.min(target, p.speed + accel*dt);
   else                  p.speed = Math.max(target, p.speed - accel*1.5*dt);
 
-  /* front wheel steering */
   p.steer = lerp(p.steer, steerIn * p.spec.steerMax, dt*6);
   const speedRatio = clamp(Math.abs(p.speed)/p.spec.maxSpeed, 0, 1);
   p.angle += p.steer * p.spec.turnRate * speedRatio * Math.sign(p.speed || 1) * dt;
@@ -1671,40 +1962,33 @@ function updateTruckPlayer(dt, p){
 }
 
 function updateAircraftPlayer(dt, p){
-  const throttleIn = (Input.key('KeyW') ? 1 : 0) - (Input.key('KeyS') ? 1 : 0);
+  const throttleIn = getAirThrottle();
   p.throttle = clamp(p.throttle + throttleIn * dt * 0.85, 0, 1);
 
   const fuelRatio = p.fuel > 0 ? 1 : 0;
   const targetSpeed = p.throttle * p.spec.maxSpeed * (0.3 + 0.7*fuelRatio) * (0.5 + 0.5*(p.engine/100));
   p.speed = lerp(p.speed, targetSpeed, 1 - Math.pow(0.15, dt));
 
-  /* banking */
-  const bankIn = (Input.key('KeyD') ? 1 : 0) - (Input.key('KeyA') ? 1 : 0);
+  const bankIn = getAirBank();
   p.bank = lerp(p.bank, bankIn, dt*3.5);
   const spdRatio = clamp(p.speed / p.spec.maxSpeed, 0.15, 1);
   p.angle += p.bank * p.spec.turnRate * spdRatio * dt;
 
-  /* pitch / altitude */
-  const pitchIn = (Input.key('ArrowUp') || Input.key('ShiftLeft') ? 1 : 0)
-                - (Input.key('ArrowDown') || Input.key('ControlLeft') ? 1 : 0);
+  const pitchIn = getAirPitch();
   p.pitch = lerp(p.pitch, pitchIn, dt*3);
   p.alt += p.pitch * 330 * dt;
   p.alt = clamp(p.alt, 0, 2600);
 
-  /* fuel */
   p.fuel = Math.max(0, p.fuel - (0.35 + p.throttle*1.35) * dt);
 
-  /* position */
   p.x += Math.cos(p.angle) * p.speed * dt;
   p.y += Math.sin(p.angle) * p.speed * dt;
 
-  /* soft world bounds */
   if (p.x < 40) p.x = 40;
   if (p.y < 40) p.y = 40;
   if (p.x > M.size-40) p.x = M.size-40;
   if (p.y > M.size-40) p.y = M.size-40;
 
-  /* crash check */
   if (p.alt <= 0){
     p.alive = false;
     explosion(p.x, p.y, 1.6);
@@ -1714,9 +1998,8 @@ function updateAircraftPlayer(dt, p){
     p.alt -= 120*dt;
   }
 
-  /* guns */
   if (p.gunTimer > 0) p.gunTimer -= dt;
-  if ((Input.mouse.down || Input.key('Space')) && p.gunTimer <= 0 && p.ammo > 0){
+  if (getAirFiring() && p.gunTimer <= 0 && p.ammo > 0){
     fireBullet(p, p.angle + rand(-0.02,0.02), p.spec, 'player');
     p.gunTimer = p.spec.gunRate;
   }
@@ -1737,7 +2020,6 @@ function updateEnemies(dt){
     else updateEnemyTank(dt, e, p);
   }
 
-  /* wave spawning for survive missions */
   if (M.def.waves && M.status === 'active'){
     M.waveTimer -= dt;
     const alive = M.enemies.filter(e => e.alive).length;
@@ -1770,7 +2052,6 @@ function updateEnemyTank(dt, e, p){
   const d = dist(e.x, e.y, p.x, p.y);
   const targetAngle = Math.atan2(p.y - e.y, p.x - e.x);
 
-  /* state machine */
   if (ai.state === 'idle'){
     if (d < 900 && p.alive) ai.state = 'pursue';
     e.speed = lerp(e.speed, 0, dt*2);
@@ -1780,7 +2061,6 @@ function updateEnemyTank(dt, e, p){
     if (!p.alive || d > 1200) ai.state = 'idle';
     else if (d < 420) ai.state = 'attack';
     else {
-      /* drive toward player */
       const desired = targetAngle;
       e.angle = lerpAngle(e.angle, desired, dt*1.4);
       const maxSpd = e.spec.maxSpeed * 0.85;
@@ -1792,7 +2072,6 @@ function updateEnemyTank(dt, e, p){
     if (!p.alive) { ai.state = 'idle'; }
     else if (d > 560) ai.state = 'pursue';
     else {
-      /* hold and shoot, small strafe */
       e.speed = lerp(e.speed, 0, dt*3);
       ai.retarget -= dt;
       if (ai.retarget <= 0){
@@ -1806,12 +2085,10 @@ function updateEnemyTank(dt, e, p){
     }
   }
 
-  /* movement integration */
   e.x += Math.cos(e.angle) * e.speed * dt;
   e.y += Math.sin(e.angle) * e.speed * dt;
   resolveObstacles(e);
 
-  /* reload + fire */
   if (e.reload > 0) e.reload -= dt;
   if (e.reload <= 0 && p.alive && d < 820 && Math.abs(angDiff(e.turret, targetAngle)) < 0.10){
     const spread = rand(-0.045, 0.045);
@@ -1819,7 +2096,6 @@ function updateEnemyTank(dt, e, p){
     e.reload = e.spec.reloadTime * rand(0.95, 1.35);
   }
 
-  /* dust */
   e.trailTimer = (e.trailTimer||0) - dt;
   if (Math.abs(e.speed) > 20 && e.trailTimer <= 0){
     e.trailTimer = 0.14;
@@ -1846,7 +2122,6 @@ function updateEnemyAircraft(dt, e, p){
   const desiredSpeed = d > 500 ? e.spec.maxSpeed*0.9 : e.spec.maxSpeed*0.72;
   e.speed = lerp(e.speed, desiredSpeed, dt*0.8);
 
-  /* altitude matching */
   const altDiff = p.alt - e.alt;
   e.alt = clamp(e.alt + clamp(altDiff, -180*dt, 180*dt), 100, 2600);
 
@@ -1855,7 +2130,6 @@ function updateEnemyAircraft(dt, e, p){
   e.x = clamp(e.x, 60, M.size-60);
   e.y = clamp(e.y, 60, M.size-60);
 
-  /* fire when aligned */
   if (e.gunTimer > 0) e.gunTimer -= dt;
   if (d < 700 && Math.abs(diff) < 0.16 && e.gunTimer <= 0){
     fireBullet(e, e.angle + rand(-0.03,0.03), e.spec, 'enemy');
@@ -1932,7 +2206,6 @@ function endMission(success, reason){
   M.status = success ? 'success' : 'failed';
   Sound.engineStop();
 
-  /* rating */
   let rank = '—';
   if (success){
     const hull = clamp(M.player.hp / M.player.maxHp, 0, 1);
@@ -1944,7 +2217,7 @@ function endMission(success, reason){
 
     if (!Game.isTraining){
       Save.setRating(M.index, rank);
-      Save.unlock(M.index + 2); /* unlock next mission (1-based) */
+      Save.unlock(M.index + 2);
     }
   }
 
@@ -1998,15 +2271,10 @@ function render(){
   ctx.scale(z, z);
   ctx.translate(-cam.x, -cam.y);
 
-  /* ---- terrain ---- */
   ctx.drawImage(M.map.terrain, 0, 0);
 
-  /* ---- ground decals (craters already baked) ---- */
-
-  /* ---- objective markers on the ground ---- */
   drawObjectiveMarkers(ctx);
 
-  /* ---- shadows ---- */
   ctx.save();
   ctx.fillStyle = 'rgba(0,0,0,0.32)';
   const shadowOffset = 9;
@@ -2017,7 +2285,6 @@ function render(){
   if (M.player.alive) drawEntityShadow(ctx, M.player, shadowOffset);
   ctx.restore();
 
-  /* ---- entities ---- */
   for (const e of M.enemies){
     if (!e.alive) continue;
     if (e.kind === 'aircraft') drawAircraft(ctx, e, false);
@@ -2029,28 +2296,22 @@ function render(){
     else drawTank(ctx, M.player, true);
   }
 
-  /* ---- projectiles ---- */
   drawProjectiles(ctx);
-
-  /* ---- particles ---- */
   drawParticles(ctx);
 
   ctx.restore();
 
-  /* ---- screen effects ---- */
   if (Game.flash > 0){
     ctx.fillStyle = 'rgba(150,30,20,' + (Game.flash*0.34) + ')';
     ctx.fillRect(0,0,VW,VH);
   }
 
-  /* ---- vignette-ish darkness at edges (drawn via canvas) ---- */
   const grad = ctx.createRadialGradient(VW/2, VH/2, Math.min(VW,VH)*0.32, VW/2, VH/2, Math.max(VW,VH)*0.78);
   grad.addColorStop(0, 'rgba(0,0,0,0)');
   grad.addColorStop(1, 'rgba(0,0,0,0.55)');
   ctx.fillStyle = grad;
   ctx.fillRect(0,0,VW,VH);
 
-  /* ---- crosshair ---- */
   if (Game.state === 'playing') drawCrosshair();
 }
 
@@ -2091,7 +2352,6 @@ function drawObjectiveMarkers(g){
       g.setLineDash([]);
       g.fillStyle = 'rgba(169,196,122,0.08)';
       g.beginPath(); g.arc(o.x, o.y, o.r, 0, TAU); g.fill();
-      /* beacon */
       g.fillStyle = 'rgba(201,185,138,' + (0.35 + pulse*0.4) + ')';
       g.beginPath();
       g.moveTo(o.x, o.y - 46);
@@ -2144,16 +2404,13 @@ function drawTank(g, t, isPlayer){
   g.save();
   g.translate(t.x, t.y);
 
-  /* ---- hull ---- */
   g.save();
   g.rotate(t.angle);
 
-  /* tracks */
   g.fillStyle = '#1e2118';
   rrect(g, -L/2, -W/2 - 5, L, 10, 3); g.fill();
   rrect(g, -L/2,  W/2 - 5, L, 10, 3); g.fill();
 
-  /* track detail */
   g.strokeStyle = 'rgba(0,0,0,.45)';
   g.lineWidth = 1.5;
   for (let i=-L/2+5; i<L/2; i+=8){
@@ -2161,46 +2418,38 @@ function drawTank(g, t, isPlayer){
     g.beginPath(); g.moveTo(i,  W/2-5); g.lineTo(i,  W/2+5); g.stroke();
   }
 
-  /* hull body */
   let hullCol = isPlayer ? '#5c6b3a' : '#5a4a36';
   if (t.hitFlash > 0) hullCol = '#b06a3a';
   g.fillStyle = hullCol;
   rrect(g, -L/2 + 2, -W/2, L - 4, W, 5);
   g.fill();
 
-  /* hull highlight / shading */
   g.fillStyle = 'rgba(255,255,255,0.07)';
   rrect(g, -L/2+4, -W/2+2, L-8, W*0.34, 4); g.fill();
   g.fillStyle = 'rgba(0,0,0,0.20)';
   rrect(g, -L/2+4, W/2 - W*0.3, L-8, W*0.26, 4); g.fill();
 
-  /* front plate */
   g.fillStyle = 'rgba(0,0,0,0.28)';
   g.fillRect(L/2 - 9, -W/2+2, 7, W-4);
 
-  /* stowage */
   g.fillStyle = 'rgba(0,0,0,0.18)';
   g.fillRect(-L/2 + 6, -W/2 + 4, 10, 6);
   g.fillRect(-L/2 + 6,  W/2 - 10, 10, 6);
 
   g.restore();
 
-  /* ---- turret ---- */
   g.save();
   g.rotate(t.turret);
 
-  /* barrel */
   const barrelLen = L * 0.78;
   g.fillStyle = '#2f3624';
   g.fillRect(6, -2.8, barrelLen, 5.6);
   g.fillStyle = 'rgba(255,255,255,0.10)';
   g.fillRect(6, -2.8, barrelLen, 1.6);
 
-  /* mantlet */
   g.fillStyle = '#46512c';
   rrect(g, 2, -7, 12, 14, 3); g.fill();
 
-  /* turret body */
   let turCol = isPlayer ? '#4d5a30' : '#4a3d2b';
   if (t.hitFlash > 0) turCol = '#a05e34';
   g.fillStyle = turCol;
@@ -2208,19 +2457,16 @@ function drawTank(g, t, isPlayer){
   g.arc(0, 0, W*0.42, 0, TAU);
   g.fill();
 
-  /* turret shading */
   g.fillStyle = 'rgba(255,255,255,0.09)';
   g.beginPath();
   g.arc(-2, -3, W*0.30, 0, TAU);
   g.fill();
 
-  /* hatch */
   g.fillStyle = 'rgba(0,0,0,0.32)';
   g.beginPath();
   g.arc(-4, 0, W*0.16, 0, TAU);
   g.fill();
 
-  /* muzzle flash */
   if (t.fireFlash > 0){
     const f = t.fireFlash / 0.09;
     g.globalAlpha = f;
@@ -2238,7 +2484,6 @@ function drawTank(g, t, isPlayer){
   g.restore();
   g.restore();
 
-  /* enemy marker */
   if (t.isEnemy && t.alive){
     g.save();
     g.translate(t.x, t.y - s.radius - 20);
@@ -2248,7 +2493,6 @@ function drawTank(g, t, isPlayer){
     g.closePath(); g.fill();
     g.restore();
 
-    /* health pip */
     const hp = clamp(t.hp/t.maxHp, 0, 1);
     g.fillStyle = 'rgba(0,0,0,0.6)';
     g.fillRect(t.x - 20, t.y - s.radius - 36, 40, 4);
@@ -2265,24 +2509,20 @@ function drawTruck(g, t){
   g.translate(t.x, t.y);
   g.rotate(t.angle);
 
-  /* wheels */
   g.fillStyle = '#1c1e18';
   g.fillRect(-L/2 + 4, -W/2 - 4, 12, 8);
   g.fillRect(-L/2 + 4,  W/2 - 4, 12, 8);
   g.fillRect( L/2 - 16, -W/2 - 4, 12, 8);
   g.fillRect( L/2 - 16,  W/2 - 4, 12, 8);
 
-  /* cabin */
   let col = '#5b5a3e';
   if (t.hitFlash > 0) col = '#b06a3a';
   g.fillStyle = col;
   rrect(g, -L/2, -W/2, L*0.36, W, 4); g.fill();
 
-  /* cargo bed */
   g.fillStyle = '#4a4a33';
   rrect(g, -L/2 + L*0.38, -W/2, L*0.60, W, 3); g.fill();
 
-  /* canvas cover lines */
   g.strokeStyle = 'rgba(0,0,0,0.35)';
   g.lineWidth = 1.5;
   for (let i=1;i<5;i++){
@@ -2290,11 +2530,9 @@ function drawTruck(g, t){
     g.beginPath(); g.moveTo(x, -W/2+2); g.lineTo(x, W/2-2); g.stroke();
   }
 
-  /* windshield */
   g.fillStyle = 'rgba(140,170,180,0.45)';
   g.fillRect(L/2 - L*0.20, -W/2 + 4, 6, W - 8);
 
-  /* highlight */
   g.fillStyle = 'rgba(255,255,255,0.07)';
   g.fillRect(-L/2+2, -W/2+2, L-4, 5);
 
@@ -2313,7 +2551,6 @@ function drawAircraft(g, a, isPlayer){
   let col = isPlayer ? '#5f6f42' : '#6b4436';
   if (a.hitFlash > 0) col = '#c07a4a';
 
-  /* wings */
   g.fillStyle = col;
   g.beginPath();
   g.moveTo(0, 0);
@@ -2325,13 +2562,11 @@ function drawAircraft(g, a, isPlayer){
   g.closePath();
   g.fill();
 
-  /* fuselage */
   g.fillStyle = col;
   g.beginPath();
   g.ellipse(0, 0, R*1.05, R*0.30, 0, 0, TAU);
   g.fill();
 
-  /* tailplane */
   g.fillStyle = 'rgba(0,0,0,0.35)';
   g.beginPath();
   g.moveTo(-R*0.85, 0);
@@ -2343,13 +2578,11 @@ function drawAircraft(g, a, isPlayer){
   g.closePath();
   g.fill();
 
-  /* cockpit */
   g.fillStyle = 'rgba(150,190,200,0.55)';
   g.beginPath();
   g.ellipse(R*0.18, 0, R*0.26, R*0.16, 0, 0, TAU);
   g.fill();
 
-  /* propeller / muzzle */
   if (a.fireFlash > 0){
     g.fillStyle = 'rgba(255,225,150,' + (a.fireFlash/0.05) + ')';
     g.beginPath();
@@ -2357,7 +2590,6 @@ function drawAircraft(g, a, isPlayer){
     g.fill();
   }
 
-  /* engine glow */
   g.fillStyle = 'rgba(255,180,80,0.25)';
   g.beginPath();
   g.arc(-R*0.6, 0, R*0.14, 0, TAU);
@@ -2365,7 +2597,6 @@ function drawAircraft(g, a, isPlayer){
 
   g.restore();
 
-  /* contrail */
   if (a.speed > 100 && Math.random() < 0.55){
     const back = a.angle + Math.PI;
     addParticle(
@@ -2376,7 +2607,6 @@ function drawAircraft(g, a, isPlayer){
     );
   }
 
-  /* enemy marker */
   if (a.isEnemy){
     g.save();
     g.translate(a.x, a.y - R - 22);
@@ -2436,11 +2666,7 @@ function drawParticles(g){
   g.globalAlpha = 1;
 }
 
-function drawCrosshair(){
-  const x = Input.mouse.x, y = Input.mouse.y;
-  const p = M.player;
-  const ready = (p.kind === 'tank') ? p.reload <= 0 : true;
-
+function drawReticle(x, y, ready){
   ctx.save();
   ctx.translate(x, y);
   ctx.strokeStyle = ready ? 'rgba(201,185,138,0.9)' : 'rgba(180,90,60,0.75)';
@@ -2459,7 +2685,6 @@ function drawCrosshair(){
   ctx.fillStyle = ready ? 'rgba(201,185,138,0.9)' : 'rgba(180,90,60,0.8)';
   ctx.fill();
 
-  /* outer ring */
   ctx.globalAlpha = 0.35;
   ctx.beginPath();
   ctx.arc(0,0, 20, 0, TAU);
@@ -2467,10 +2692,34 @@ function drawCrosshair(){
   ctx.restore();
 }
 
+function drawCrosshair(){
+  if (!M) return;
+  const p = M.player;
+
+  if (Touch.enabled){
+    // Aim reticle projected in the turret / nose direction
+    if (p.kind === 'tank' && p.alive){
+      const wx = p.x + Math.cos(Touch.aimAngle) * 240;
+      const wy = p.y + Math.sin(Touch.aimAngle) * 240;
+      const sx = (wx - cam.x) * cam.zoom + VW/2;
+      const sy = (wy - cam.y) * cam.zoom + VH/2;
+      drawReticle(sx, sy, p.reload <= 0);
+    }
+    return;
+  }
+
+  const ready = (p.kind === 'tank') ? p.reload <= 0 : true;
+  drawReticle(Input.mouse.x, Input.mouse.y, ready);
+}
+
 /* ---------------------------- MAIN LOOP ---------------------------- */
 let lastTs = 0;
 let accumulator = 0;
 const STEP = 1/60;
+
+function isPortraitBlocked(){
+  return Platform.isMobile && window.innerHeight > window.innerWidth;
+}
 
 function loop(ts){
   requestAnimationFrame(loop);
@@ -2479,7 +2728,7 @@ function loop(ts){
   lastTs = ts;
   if (dt > 0.1) dt = 0.1;
 
-  if (Game.state === 'playing' && M && M.status === 'active'){
+  if (Game.state === 'playing' && M && M.status === 'active' && !isPortraitBlocked()){
     accumulator += dt;
     let guard = 0;
     while (accumulator >= STEP && guard++ < 6){
@@ -2494,6 +2743,7 @@ requestAnimationFrame(loop);
 
 /* ---------------------------- SCREEN MANAGEMENT ---------------------------- */
 const SCREENS = {
+  platform: document.getElementById('screenPlatform'),
   menu: document.getElementById('screenMenu'),
   missions: document.getElementById('screenMissions'),
   vehicles: document.getElementById('screenVehicles'),
@@ -2506,11 +2756,29 @@ function hideAllScreens(){
   for (const k in SCREENS) SCREENS[k].classList.add('hidden');
   document.getElementById('hud').classList.remove('on');
   document.getElementById('vignette').classList.remove('on');
+  document.getElementById('touchControls').classList.remove('on');
 }
 
 function showScreen(name){
   hideAllScreens();
   if (SCREENS[name]) SCREENS[name].classList.remove('hidden');
+}
+
+/* ---------------------------- PLATFORM APPLY ---------------------------- */
+function applyPlatform(){
+  const mobile = Platform.isMobile;
+  document.body.classList.toggle('mobile', mobile);
+  Touch.enabled = mobile;
+  Touch.reset();
+
+  document.getElementById('rotateOverlay').classList.toggle('show', mobile);
+
+  const btn = document.getElementById('btnPlatform');
+  if (btn) btn.textContent = 'PLATFORM: ' + (mobile ? 'MOBILE' : 'DESKTOP');
+
+  if (!mobile){
+    document.getElementById('touchControls').classList.remove('on');
+  }
 }
 
 /* ---------------------------- MISSION LIST UI ---------------------------- */
@@ -2557,7 +2825,6 @@ function buildMissionList(){
     }
   });
 
-  /* training entry */
   const head = document.createElement('div');
   head.className = 'chapter';
   head.textContent = 'TRAINING GROUND';
@@ -2632,6 +2899,7 @@ function showResults(success, reason, rank){
   Game.state = 'results';
   document.getElementById('hud').classList.remove('on');
   document.getElementById('vignette').classList.remove('on');
+  document.getElementById('touchControls').classList.remove('on');
 
   const title = document.getElementById('resTitle');
   title.textContent = success ? 'MISSION COMPLETE' : 'MISSION FAILED';
@@ -2674,6 +2942,27 @@ document.addEventListener('click', (e)=>{
   Sound.init(); Sound.resume(); Sound.ui();
 
   switch(act){
+    case 'pickDesktop':
+      Platform.set('desktop');
+      applyPlatform();
+      Game.state = 'menu';
+      showScreen('menu');
+      break;
+
+    case 'pickMobile':
+      Platform.set('mobile');
+      applyPlatform();
+      Game.state = 'menu';
+      showScreen('menu');
+      break;
+
+    case 'switchPlatform':
+      Platform.set(null);
+      applyPlatform();
+      Game.state = 'menu';
+      showScreen('platform');
+      break;
+
     case 'campaign':
       Game.state = 'missions';
       buildMissionList();
@@ -2693,6 +2982,7 @@ document.addEventListener('click', (e)=>{
     case 'settings':
       Game.state = 'settings';
       document.getElementById('btnSound').textContent = 'SOUND: ' + (Sound.muted ? 'OFF' : 'ON');
+      document.getElementById('btnPlatform').textContent = 'PLATFORM: ' + (Platform.isMobile ? 'MOBILE' : 'DESKTOP');
       showScreen('settings');
       break;
 
@@ -2750,12 +3040,32 @@ document.addEventListener('click', (e)=>{
 
 /* ---------------------------- BOOT ---------------------------- */
 Save.load();
-Sound.muted = Save.data.sound === false;
-drawMenuBackdrop();
+Platform.load();
+
+document.getElementById('btnSound').textContent = 'SOUND: ' + (Sound.muted ? 'OFF' : 'ON');
+
+if (!Platform.value){
+  Game.state = 'menu';
+  showScreen('platform');
+} else {
+  applyPlatform();
+  Game.state = 'menu';
+  showScreen('menu');
+}
 
 /* first user gesture unlocks audio */
-['pointerdown','keydown'].forEach(ev=>{
+['pointerdown','keydown','touchstart'].forEach(ev=>{
   window.addEventListener(ev, ()=>{ Sound.init(); Sound.resume(); }, { once:true });
+});
+
+/* keep the rotate overlay class in sync on orientation change */
+window.addEventListener('resize', ()=>{
+  const overlay = document.getElementById('rotateOverlay');
+  if (Platform.isMobile){
+    overlay.classList.add('show');
+  } else {
+    overlay.classList.remove('show');
+  }
 });
 
 console.log('%cIRON FRONT: WORLD WAR', 'color:#c9b98a;font-size:16px;letter-spacing:4px;');
